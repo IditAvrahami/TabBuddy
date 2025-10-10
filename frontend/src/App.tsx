@@ -62,6 +62,24 @@ function App() {
     }
   };
 
+  const handleDeleteDrug = async (drugName: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${drugName}"?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      await api.deleteDrug(drugName);
+      await loadDrugs();
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete drug');
+      alert(err.message || 'Failed to delete drug');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="App" style={{ maxWidth: 420, margin: '2rem auto', fontFamily: 'Nunito, Quicksand, sans-serif', background: '#FFFCF6', borderRadius: 24, boxShadow: '0 4px 24px #f6a96b22', padding: '2rem' }}>
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2rem' }}>
@@ -141,19 +159,62 @@ function App() {
       <h3 style={{ marginTop: '2rem', color: '#4A3A2F', fontWeight: 700 }}>Drugs List</h3>
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {drugs.map((drug, idx) => (
-          <li key={idx} style={{ marginBottom: '1rem', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #8ed1fc22', padding: '1rem', display: 'flex', alignItems: 'center' }}>
-            <span style={{ display: 'inline-block', width: 32, height: 32, borderRadius: 16, background: drug.kind === 'pill' ? 'linear-gradient(180deg, #8ED1FC 50%, #F6A96B 50%)' : 'linear-gradient(180deg, #F6A96B 50%, #8ED1FC 50%)', marginRight: 16, border: '2px solid #8ED1FC', position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 8, top: 8, width: 4, height: 4, background: '#4A3A2F', borderRadius: '50%' }}></span>
-              <span style={{ position: 'absolute', right: 8, top: 8, width: 4, height: 4, background: '#4A3A2F', borderRadius: '50%' }}></span>
-              <span style={{ position: 'absolute', left: 10, top: 16, width: 12, height: 4, borderRadius: 2, background: '#4A3A2F' }}></span>
-            </span>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontWeight: 700, color: '#4A3A2F', fontSize: '1.1rem' }}>{drug.name}</div>
-              <div style={{ color: '#4A3A2F', fontSize: '0.95rem' }}>Type: {drug.kind.charAt(0).toUpperCase() + drug.kind.slice(1)}</div>
-              <div style={{ color: '#4A3A2F', fontSize: '0.95rem' }}>{drug.kind === 'pill' ? `Amount: ${drug.amount_per_dose} pill(s) per dose` : `Amount: ${drug.amount_per_dose} ml per dose`}</div>
-              <div style={{ color: '#4A3A2F', fontSize: '0.95rem' }}>Duration: {drug.duration} day(s)</div>
-              <div style={{ color: '#4A3A2F', fontSize: '0.9rem' }}>{drug.amount_per_day} time(s) per day</div>
+          <li key={idx} style={{ marginBottom: '1rem', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #8ed1fc22', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+              <span style={{ display: 'inline-block', width: 32, height: 32, borderRadius: 16, background: drug.kind === 'pill' ? 'linear-gradient(180deg, #8ED1FC 50%, #F6A96B 50%)' : 'linear-gradient(180deg, #F6A96B 50%, #8ED1FC 50%)', marginRight: 16, border: '2px solid #8ED1FC', position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 8, top: 8, width: 4, height: 4, background: '#4A3A2F', borderRadius: '50%' }}></span>
+                <span style={{ position: 'absolute', right: 8, top: 8, width: 4, height: 4, background: '#4A3A2F', borderRadius: '50%' }}></span>
+                <span style={{ position: 'absolute', left: 10, top: 16, width: 12, height: 4, borderRadius: 2, background: '#4A3A2F' }}></span>
+              </span>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontWeight: 700, color: '#4A3A2F', fontSize: '1.1rem' }}>{drug.name}</div>
+                <div style={{ color: '#4A3A2F', fontSize: '0.95rem' }}>Type: {drug.kind.charAt(0).toUpperCase() + drug.kind.slice(1)}</div>
+                <div style={{ color: '#4A3A2F', fontSize: '0.95rem' }}>{drug.kind === 'pill' ? `Amount: ${drug.amount_per_dose} pill(s) per dose` : `Amount: ${drug.amount_per_dose} ml per dose`}</div>
+                <div style={{ color: '#4A3A2F', fontSize: '0.95rem' }}>Duration: {drug.duration} day(s)</div>
+                <div style={{ color: '#4A3A2F', fontSize: '0.9rem' }}>{drug.amount_per_day} time(s) per day</div>
+              </div>
             </div>
+            <button
+              onClick={() => handleDeleteDrug(drug.name)}
+              disabled={loading}
+              style={{
+                background: 'transparent',
+                color: '#333333',
+                border: 'none',
+                borderRadius: 8,
+                padding: '0.6rem',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.6 : 1,
+                transition: 'all 0.2s ease',
+                marginLeft: '1rem',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseOver={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = '#f0f0f0';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseOut={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
+              }}
+              title="Delete drug"
+            >
+              {loading ? (
+                <span style={{ fontSize: '12px', color: '#333333' }}>...</span>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+              )}
+            </button>
           </li>
         ))}
       </ul>
