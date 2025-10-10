@@ -26,7 +26,7 @@ def connect_to_main_db():
         print("✅ Main database is running")
     
     # Database connection details
-    db_url = "postgresql://postgres@localhost:5432/tabbuddy"
+    db_url = "postgresql://postgres:postgres@localhost:5433/tabbuddy"
     
     print("🚀 Connecting to main database with pgcli...")
     print("💡 Useful commands:")
