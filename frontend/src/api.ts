@@ -8,6 +8,22 @@ export interface DrugDto {
 	amount_per_day: number;
 }
 
+export interface MealScheduleDto {
+	id: number;
+	meal_name: string;
+	base_time: string; // HH:MM format
+	created_at: string;
+}
+
+export interface MealScheduleCreate {
+	meal_name: string;
+	base_time: string; // HH:MM format
+}
+
+export interface MealScheduleUpdate {
+	base_time: string; // HH:MM format
+}
+
 const BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
 async function http<T>(path: string, options?: RequestInit): Promise<T> {
@@ -27,4 +43,10 @@ export const api = {
 	listDrugs: () => http<DrugDto[]>('/drug'),
 	updateDrug: (name: string, drug: DrugDto) => http<{ message: string }>(`/drug/${encodeURIComponent(name)}`, { method: 'PUT', body: JSON.stringify(drug) }),
 	deleteDrug: (name: string) => http<{ message: string }>(`/drug/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+	
+	// Meal schedule endpoints
+	getMealSchedules: () => http<MealScheduleDto[]>('/meal-schedules'),
+	createMealSchedule: (meal: MealScheduleCreate) => http<{ message: string }>('/meal-schedules', { method: 'POST', body: JSON.stringify(meal) }),
+	updateMealSchedule: (mealName: string, meal: MealScheduleUpdate) => http<{ message: string }>(`/meal-schedules/${encodeURIComponent(mealName)}`, { method: 'PUT', body: JSON.stringify(meal) }),
+	deleteMealSchedule: (mealName: string) => http<{ message: string }>(`/meal-schedules/${encodeURIComponent(mealName)}`, { method: 'DELETE' }),
 };

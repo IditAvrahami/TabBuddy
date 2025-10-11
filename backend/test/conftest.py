@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 os.environ["DATABASE_URL"] = os.getenv("TEST_DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost:5434/tabbuddy_test")
 
 from backend.database import Base, get_db
-from backend.models import DrugORM
+from backend.models import DrugORM, MealSchedule
 from backend.main import app
 
 @pytest.fixture(scope="session")
@@ -68,6 +68,7 @@ def clean_db_between_tests(test_session_factory):
         # Clear all data but keep table structure - only if table exists
         try:
             session.query(DrugORM).delete()
+            session.query(MealSchedule).delete()
             session.commit()
         except Exception:
             # Table doesn't exist yet, that's ok
@@ -76,6 +77,7 @@ def clean_db_between_tests(test_session_factory):
         # Clean up after test - only if table exists
         try:
             session.query(DrugORM).delete()
+            session.query(MealSchedule).delete()
             session.commit()
         except Exception:
             # Table might not exist, that's ok
