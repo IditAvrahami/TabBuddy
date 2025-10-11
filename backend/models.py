@@ -17,6 +17,6 @@ class MealSchedule(Base):
     __tablename__ = 'meal_schedules'
     
     id = Column(Integer, primary_key=True, index=True)
-    meal_name = Column(String(50), nullable=False)
+    meal_name = Column(String(50), unique=True, nullable=False)
     base_time = Column(Time, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
