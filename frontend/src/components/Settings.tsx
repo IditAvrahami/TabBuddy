@@ -47,9 +47,16 @@ const Settings: React.FC = () => {
       for (const meal of defaultMeals) {
         await api.createMealSchedule(meal);
       }
-      // Reload after creating defaults
+      // Reload after creating defaults and apply sorting
       const schedules = await api.getMealSchedules();
-      setMealSchedules(schedules);
+      
+      // Sort meals in order: breakfast, lunch, dinner
+      const sortedSchedules = schedules.sort((a, b) => {
+        const order = ['breakfast', 'lunch', 'dinner'];
+        return order.indexOf(a.meal_name) - order.indexOf(b.meal_name);
+      });
+      
+      setMealSchedules(sortedSchedules);
     } catch (err) {
       console.error('Failed to create default meals:', err);
     }
