@@ -51,11 +51,8 @@ function App() {
     try {
       setLoading(true);
       setError(null);
-      if (editingDrug) {
-        await api.updateDrug(editingDrug.name, drug);
-      } else {
-        await api.addDrug(drug);
-      }
+      // Use the original drug name as identifier, not the potentially modified name
+      await api.updateDrug(editingDrug!.name, drug);
       await loadDrugs();
       setShowDrugForm(false);
       setEditingDrug(null);
