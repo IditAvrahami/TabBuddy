@@ -27,15 +27,28 @@ export interface MealScheduleUpdate {
 const BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
 async function http<T>(path: string, options?: RequestInit): Promise<T> {
-	const res = await fetch(`${BASE_URL}${path}`, {
-		headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) },
-		...options,
-	});
-	if (!res.ok) {
-		const err = await res.json().catch(() => ({}));
-		throw new Error(err.detail || res.statusText);
+	try {
+		const res = await fetch(`${BASE_URL}${path}`, {
+			headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) },
+			...options,
+		});
+		if (!res.ok) {
+			let errorMessage = res.statusText;
+			try {
+				const err = await res.json();
+				errorMessage = err.detail || err.message || res.statusText;
+			} catch {
+				// If JSON parsing fails, use status text
+			}
+			throw new Error(errorMessage);
+		}
+		return res.json();
+	} catch (error) {
+		if (error instanceof Error) {
+			throw error;
+		}
+		throw new Error('Network error: Failed to connect to server');
 	}
-	return res.json();
 }
 
 export const api = {

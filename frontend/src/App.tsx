@@ -21,7 +21,8 @@ function App() {
       const list = await api.listDrugs();
       setDrugs(list);
     } catch (err: any) {
-      setError(err.message || 'Failed to load drugs');
+      const errorMessage = err?.message || err?.toString() || 'Failed to load drugs';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -40,7 +41,8 @@ function App() {
       setShowDrugForm(false);
       setEditingDrug(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to add drug');
+      const errorMessage = err?.message || err?.toString() || 'Failed to add drug';
+      setError(errorMessage);
       throw err; // Re-throw to let DrugForm handle the error display
     } finally {
       setLoading(false);
@@ -57,7 +59,8 @@ function App() {
       setShowDrugForm(false);
       setEditingDrug(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to update drug');
+      const errorMessage = err?.message || err?.toString() || 'Failed to update drug';
+      setError(errorMessage);
       throw err; // Re-throw to let DrugForm handle the error display
     } finally {
       setLoading(false);
@@ -71,7 +74,8 @@ function App() {
       await api.deleteDrug(drugName);
       await loadDrugs();
     } catch (err: any) {
-      setError(err.message || 'Failed to delete drug');
+      const errorMessage = err?.message || err?.toString() || 'Failed to delete drug';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
