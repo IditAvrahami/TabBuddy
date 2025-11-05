@@ -6,4 +6,5 @@ httpx
 SQLAlchemy
 psycopg2-binary
 pgcli
+alembic
 

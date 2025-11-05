@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Timezone Conversion</title>
+</head>
+<body>
+    <h1>Test Timezone Conversion</h1>
+    <input type="time" id="timeInput" value="20:00">
+    <button onclick="testConversion()">Test Conversion</button>
+    <div id="result"></div>
+
+    <script>
+        // Copy the exact function from frontend/src/utils/timezone.ts
+        function convertLocalTimeToUTC(localTime) {
+            if (!localTime) return localTime;
+            
+            // Create a date object for today with the local time
+            const today = new Date();
+            const [hours, minutes] = localTime.split(':').map(Number);
+            const localDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes);
+            
+            // Get timezone offset in hours
+            const offsetHours = localDate.getTimezoneOffset() / 60;
+            
+            // Convert to UTC by adding the offset (offset is negative for positive timezones)
+            const utcHours = (hours + offsetHours + 24) % 24;
+            const utcMinutes = minutes;
+            
+            // Return in HH:MM format
+            return utcHours.toString().padStart(2, '0') + ':' + 
+                   utcMinutes.toString().padStart(2, '0');
+        }
+
+        function testConversion() {
+            const inputTime = document.getElementById('timeInput').value;
+            const utcTime = convertLocalTimeToUTC(inputTime);
+            
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <p><strong>Input (Local):</strong> ${inputTime}</p>
+                <p><strong>Output (UTC):</strong> ${utcTime}</p>
+                <p><strong>Timezone Offset:</strong> ${new Date().getTimezoneOffset()} minutes</p>
+                <p><strong>Expected:</strong> 17:00 (for UTC+3)</p>
+            `;
+        }
+
+        // Test on page load
+        window.onload = function() {
+            testConversion();
+        };
+    </script>
+</body>
+</html>
