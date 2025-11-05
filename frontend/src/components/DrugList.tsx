@@ -1,5 +1,6 @@
 import React from 'react';
 import { DrugDto } from '../api';
+import { convertUTCToLocalTime, formatTimeWithTimezone } from '../utils/timezone';
 
 interface DrugListProps {
   drugs: DrugDto[];
@@ -7,10 +8,25 @@ interface DrugListProps {
   error: string | null;
   onAddDrug: () => void;
   onEditDrug: (drug: DrugDto) => void;
-  onDeleteDrug: (drugName: string) => void;
+  onDeleteDrug: (drugId: number) => void;
 }
 
 const DrugList: React.FC<DrugListProps> = ({ drugs, loading, error, onAddDrug, onEditDrug, onDeleteDrug }) => {
+  const getTimingDescription = (drug: DrugDto): string => {
+    switch (drug.dependency_type) {
+      case 'absolute':
+        // Convert UTC time to local time for display
+        const localTime = drug.absolute_time ? convertUTCToLocalTime(drug.absolute_time) : '';
+        return `At ${localTime} (local time)`;
+      case 'meal':
+        return `Meal dependency (${drug.meal_timing} meal)`;
+      case 'drug':
+        return `Depends on another drug`;
+      case 'independent':
+      default:
+        return 'Independent timing';
+    }
+  };
   return (
     <div style={{ padding: '2rem' }}>
       <div style={{ 
@@ -181,8 +197,10 @@ const DrugList: React.FC<DrugListProps> = ({ drugs, loading, error, onAddDrug, o
                       : `${drug.amount_per_dose} ml per dose`
                     }
                   </div>
-                  <div><strong>Duration:</strong> {drug.duration} day(s)</div>
-                  <div><strong>Frequency:</strong> {drug.amount_per_day} time(s) per day</div>
+                  <div><strong>Start:</strong> {new Date(drug.start_date).toLocaleDateString()}</div>
+                  <div><strong>End:</strong> {drug.end_date ? new Date(drug.end_date).toLocaleDateString() : 'No end date'}</div>
+                  <div><strong>Frequency:</strong> {drug.frequency_per_day} time(s) per day</div>
+                  <div><strong>Timing:</strong> {getTimingDescription(drug)}</div>
                 </div>
               </div>
               
@@ -222,7 +240,7 @@ const DrugList: React.FC<DrugListProps> = ({ drugs, loading, error, onAddDrug, o
                 <button
                   onClick={() => {
                     if (window.confirm(`Are you sure you want to delete "${drug.name}"?`)) {
-                      onDeleteDrug(drug.name);
+                      onDeleteDrug(drug.id);
                     }
                   }}
                   style={{
