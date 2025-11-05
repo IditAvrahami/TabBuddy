@@ -336,3 +336,80 @@ def test_notifications_dismiss_then_snooze(test_client: TestClient):
     assert len(notif2) == 0
 
 
+@freeze_time("2025-10-26 20:00:00")
+def test_notifications_update_time_clears_snooze_and_reappears(test_client: TestClient):
+    """Test that updating a drug's absolute_time clears snoozes and notification reappears with new time"""
+    today = date.today().isoformat()
+    # Create a drug with time at 20:00 (current time)
+    from datetime import datetime, timedelta
+    now = datetime.now()
+    original_time = now.strftime("%H:%M")  # 20:00
+    payload = create_absolute_payload("UpdateTimeDrug", original_time, today, today)
+    r = test_client.post("/drug", json=payload)
+    assert r.status_code == 200
+
+    # Get the schedule ID
+    list_resp = test_client.get("/drug").json()
+    schedule = next(d for d in list_resp if d["name"] == "UpdateTimeDrug")
+    sid = schedule["id"]
+
+    # Step 1: Verify notification appears initially
+    notif_initial = test_client.get("/notifications").json()
+    assert len(notif_initial) == 1
+    assert notif_initial[0]["drug_name"] == "UpdateTimeDrug"
+    assert notif_initial[0]["scheduled_time"].endswith(f"{original_time}:00")
+
+    # Step 2: Snooze the notification for 30 minutes
+    snooze = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 30})
+    assert snooze.status_code == 200
+
+    # Step 3: Verify notification disappears after snooze
+    notif_after_snooze = test_client.get("/notifications").json()
+    assert len(notif_after_snooze) == 0, "Notification should disappear after snooze"
+
+    # Step 4: Update the drug's absolute_time to a new time (20:00:03 - 3 seconds from now)
+    # We use a time very close to now so it appears in the notification window (-60 to +5 seconds)
+    new_time_dt = now + timedelta(seconds=3)  # 3 seconds in the future
+    new_time = new_time_dt.strftime("%H:%M:%S")[:5]  # Get HH:MM format
+    update_payload = {
+        "name": "UpdateTimeDrug",
+        "kind": "pill",
+        "amount_per_dose": 1,
+        "frequency_per_day": 1,
+        "start_date": today,
+        "end_date": today,
+        "dependency_type": "absolute",
+        "absolute_time": new_time,
+    }
+    update_resp = test_client.put(f"/drug-id/{sid}", json=update_payload)
+    assert update_resp.status_code == 200
+
+    # Step 5: Verify notification reappears with the NEW time
+    # The new time is 3 seconds in the future, which is within the 5-second window
+    notif_after_update = test_client.get("/notifications").json()
+    assert len(notif_after_update) == 1, "Notification should reappear after updating time (override was cleared)"
+    assert notif_after_update[0]["drug_name"] == "UpdateTimeDrug"
+    # Verify it uses the new time (should be 20:00:03 or close to it)
+    scheduled_time_str = notif_after_update[0]["scheduled_time"]
+    assert new_time in scheduled_time_str or scheduled_time_str.endswith(f"{new_time}:00"), \
+        f"Notification should use new time {new_time}, got {scheduled_time_str}"
+
+    # Step 6: Verify that snoozing again uses the NEW time, not the old one
+    # Snooze for 10 minutes - should now be based on the new time (20:00:03), so it becomes 20:10:03
+    snooze2 = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 10})
+    assert snooze2.status_code == 200
+
+    # Notification should disappear (it's now 20:10:03, but we're still at 20:00:00)
+    notif_after_second_snooze = test_client.get("/notifications").json()
+    assert len(notif_after_second_snooze) == 0, "Notification should disappear after second snooze"
+
+    # Fast forward to 20:10:03 (when the snooze expires) - notification should reappear
+    with freeze_time("2025-10-26 20:10:03"):
+        notif_after_snooze_expires = test_client.get("/notifications").json()
+        assert len(notif_after_snooze_expires) == 1, "Notification should reappear after snooze expires"
+        assert notif_after_snooze_expires[0]["drug_name"] == "UpdateTimeDrug"
+        # The scheduled_time should be based on the new time (20:00:03) + 10 minutes snooze = 20:10:03
+        assert "20:10" in notif_after_snooze_expires[0]["scheduled_time"], \
+            "Notification time should reflect the new base time plus snooze"
+
+

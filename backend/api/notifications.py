@@ -80,10 +80,23 @@ def snooze_notification(schedule_id: int, payload: SnoozeRequest, db: Session = 
     
     logger.info("Existing override check: %s", existing_override is not None)
     
+    # Check if existing override is valid (not too old/stale)
+    # If absolute_time was edited, overrides should have been cleared, but this is a safety check
     if existing_override and existing_override.snoozed_until:
-        # If there's already a snooze, add to the existing snoozed_until time
-        base_dt = existing_override.snoozed_until
-        logger.info("Adding to existing snooze: base_dt=%s", base_dt)
+        # Check if the existing snooze is reasonable (not way in the past, which would indicate stale data)
+        # If snoozed_until is more than 24 hours in the past, it's likely stale and we should reset
+        now = datetime.now()
+        if existing_override.snoozed_until < now - timedelta(hours=24):
+            logger.warning("Existing override appears stale (snoozed_until=%s), resetting to original time", existing_override.snoozed_until)
+            # Delete the stale override and start fresh
+            db.delete(existing_override)
+            existing_override = None
+            base_dt = datetime.combine(today, schedule.absolute_time)
+            logger.info("Starting from original time after clearing stale override: base_dt=%s", base_dt)
+        else:
+            # If there's already a valid snooze, add to the existing snoozed_until time
+            base_dt = existing_override.snoozed_until
+            logger.info("Adding to existing snooze: base_dt=%s", base_dt)
     else:
         # Otherwise, start from the original scheduled time
         base_dt = datetime.combine(today, schedule.absolute_time)

@@ -5,7 +5,7 @@ from typing import List, Optional, Union
 from datetime import date, time, datetime, timedelta
 from backend.database import get_db
 from sqlalchemy.orm import Session
-from backend.models import DrugORM, DrugSchedule, MealSchedule, DependencyType
+from backend.models import DrugORM, DrugSchedule, MealSchedule, DependencyType, NotificationOverride
 import time as time_module
 
 logger = logging.getLogger(__name__)
@@ -184,6 +184,10 @@ def update_drug(drug_id: int, drug: DrugCreateCompat, db: Session = Depends(get_
     schedule.drug.kind = drug.kind
     schedule.drug.amount_per_dose = drug.amount_per_dose
     
+    # Store old absolute_time to detect changes
+    old_absolute_time = schedule.absolute_time
+    absolute_time_changed = False
+    
     # Update schedule info
     dep_type_str = drug.dependency_type or schedule.dependency_type.value
     schedule.dependency_type = DependencyType(dep_type_str)
@@ -192,6 +196,9 @@ def update_drug(drug_id: int, drug: DrugCreateCompat, db: Session = Depends(get_
         schedule.start_date = date.today()
         schedule.end_date = schedule.start_date + timedelta(days=max(0, drug.duration - 1))
         schedule.frequency_per_day = drug.amount_per_day
+        # If absolute_time is being removed (set to None), mark as changed
+        if old_absolute_time is not None:
+            absolute_time_changed = True
         schedule.absolute_time = None
     else:
         if drug.frequency_per_day is not None:
@@ -201,6 +208,10 @@ def update_drug(drug_id: int, drug: DrugCreateCompat, db: Session = Depends(get_
         if drug.end_date is not None:
             schedule.end_date = drug.end_date
         if drug.absolute_time is not None:
+            # Check if absolute_time is actually changing
+            if old_absolute_time != drug.absolute_time:
+                absolute_time_changed = True
+                logger.info("Absolute time changed from %s to %s for schedule %d", old_absolute_time, drug.absolute_time, schedule.id)
             # Frontend now sends UTC time directly
             schedule.absolute_time = drug.absolute_time
     schedule.meal_schedule_id = drug.meal_schedule_id
@@ -208,6 +219,19 @@ def update_drug(drug_id: int, drug: DrugCreateCompat, db: Session = Depends(get_
     schedule.meal_timing = drug.meal_timing
     schedule.depends_on_drug_id = drug.depends_on_drug_id
     schedule.drug_offset_minutes = drug.drug_offset_minutes
+    
+    # If absolute_time changed, clear notification overrides for today and future dates
+    # This prevents snooze mechanism from using old times
+    if absolute_time_changed:
+        today = date.today()
+        logger.info("Absolute time changed for schedule %d, clearing notification overrides for today and future dates", schedule.id)
+        # Delete all notification overrides (snoozes and dismissals) for this schedule from today onwards
+        # This ensures the next snooze will use the new absolute_time
+        deleted_count = db.query(NotificationOverride).filter(
+            NotificationOverride.schedule_id == schedule.id,
+            NotificationOverride.override_date >= today
+        ).delete()
+        logger.info("Cleared %d notification override(s) for schedule %d", deleted_count, schedule.id)
     
     db.commit()
     logger.info("PUT /drug/%d success name=%s", drug_id, drug.name)
