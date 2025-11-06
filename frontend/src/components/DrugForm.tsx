@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { DrugDto, DrugCreateDto, DependencyType, api } from '../api';
-import { convertLocalTimeToUTC, convertUTCToLocalTime, formatTimeWithTimezone } from '../utils/timezone';
+import { convertLocalTimeToUTC, convertUTCToLocalTime } from '../utils/timezone';
+import Modal from './primitives/Modal';
+import Container from './primitives/Container';
+import Text from './primitives/Text';
+import Form from './primitives/Form';
+import Option from './primitives/Option';
+import FormField from './forms/FormField';
+import DependencySelector from './forms/DependencySelector';
+import AbsoluteTimeField from './forms/AbsoluteTimeField';
+import MealDependencyFields from './forms/MealDependencyFields';
+import DrugDependencyFields from './forms/DrugDependencyFields';
+import FormActions from './layout/FormActions';
+import Button from './primitives/Button';
 import './DrugForm.css';
 
 interface DrugFormProps {
@@ -31,7 +43,6 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
   const [existingDrugs, setExistingDrugs] = useState<DrugDto[]>([]);
 
   useEffect(() => {
-    // Load meal schedules and existing drugs for dependencies
     const loadData = async () => {
       try {
         const [meals, drugs] = await Promise.all([
@@ -39,7 +50,7 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
           api.listDrugs()
         ]);
         setMealSchedules(meals);
-        setExistingDrugs(drugs.filter(d => d.id !== editingDrug?.id)); // Exclude current drug if editing
+        setExistingDrugs(drugs.filter(d => d.id !== editingDrug?.id));
       } catch (err) {
         console.error('Failed to load dependencies:', err);
       }
@@ -51,14 +62,11 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Timezone conversion now handled by utility functions
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.amount || !form.startDate) return;
     if (form.dependencyType !== 'absolute' && !form.frequencyPerDay) return;
 
-    // Debug timezone conversion
     const convertedTime = form.absoluteTime ? convertLocalTimeToUTC(form.absoluteTime) : undefined;
     console.log('🔧 Timezone Debug:');
     console.log('  Local time from form:', form.absoluteTime);
@@ -73,7 +81,6 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
       start_date: form.startDate,
       end_date: form.endDate || undefined,
       dependency_type: form.dependencyType,
-      // Convert local time to UTC before sending to backend
       absolute_time: convertedTime,
       meal_schedule_id: form.mealScheduleId ? parseInt(form.mealScheduleId, 10) : undefined,
       meal_offset_minutes: form.mealOffsetMinutes ? parseInt(form.mealOffsetMinutes, 10) : undefined,
@@ -86,7 +93,6 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
 
     try {
       await onSubmit(payload);
-      // Reset form
       setForm({
         name: '', type: 'pill', amount: '', frequencyPerDay: '', startDate: '', endDate: '',
         dependencyType: 'independent', absoluteTime: '', mealScheduleId: '', mealOffsetMinutes: '',
@@ -98,286 +104,128 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
   };
 
   return (
-    <div className="drug-form-overlay">
-      <div className="drug-form-container">
-        <div className="drug-form-header">
-          <h2 className="drug-form-title">
-            {editingDrug ? 'Edit Drug' : 'Add New Drug'}
-          </h2>
-          <button
-            onClick={onCancel}
-            className="drug-form-close-button"
+    <Modal visible={true} onClose={onCancel} className="drug-form-modal">
+      <Container className="drug-form-header">
+        <Text variant="h2" className="drug-form-title">
+          {editingDrug ? 'Edit Drug' : 'Add New Drug'}
+        </Text>
+        <Button
+          variant="icon"
+          onClick={onCancel}
+          className="drug-form-close-button"
+        >
+          ×
+        </Button>
+      </Container>
+
+      <Form onSubmit={handleSubmit} className="drug-form">
+        <FormField
+          label="Drug Name"
+          type="text"
+          name="name"
+          value={form.name}
+          onChange={handleChange}
+          placeholder="Enter drug name"
+          required
+        />
+
+        <FormField
+          label="Type"
+          type="select"
+          name="type"
+          value={form.type}
+          onChange={handleChange}
+          required
+        >
+          <Option value="pill">Pill</Option>
+          <Option value="liquid">Liquid</Option>
+        </FormField>
+
+        <FormField
+          label="Amount per Dose"
+          type="number"
+          name="amount"
+          value={form.amount}
+          onChange={handleChange}
+          placeholder={form.type === 'pill' ? 'Number of pills per dose' : 'Amount in ml per dose'}
+          min={1}
+          required
+        />
+
+        <FormField
+          label="Start Date"
+          type="date"
+          name="startDate"
+          value={form.startDate}
+          onChange={handleChange}
+          required
+        />
+
+        <FormField
+          label="End Date (Optional)"
+          type="date"
+          name="endDate"
+          value={form.endDate}
+          onChange={handleChange}
+        />
+
+        {form.dependencyType !== 'absolute' && (
+          <FormField
+            label="Frequency per Day"
+            type="select"
+            name="frequencyPerDay"
+            value={form.frequencyPerDay}
+            onChange={handleChange}
+            required
           >
-            ×
-          </button>
-        </div>
+            <Option value="">Select frequency</Option>
+            <Option value="1">1 time per day</Option>
+            <Option value="2">2 times per day</Option>
+            <Option value="3">3 times per day</Option>
+            <Option value="4">4 times per day</Option>
+            <Option value="5">5 times per day</Option>
+            <Option value="6">6 times per day</Option>
+          </FormField>
+        )}
 
-        <form onSubmit={handleSubmit} className="drug-form">
-          <div className="form-group">
-            <label className="form-label">
-              Drug Name *
-            </label>
-            <input
-              type="text"
-              name="name"
-              placeholder="Enter drug name"
-              value={form.name}
-              onChange={handleChange}
-              required
-              className="form-input"
-            />
-          </div>
+        <DependencySelector
+          value={form.dependencyType}
+          onChange={handleChange}
+        />
 
-          <div className="form-group">
-            <label className="form-label">
-              Type *
-            </label>
-            <select
-              name="type"
-              value={form.type}
-              onChange={handleChange}
-              required
-              className="form-select"
-            >
-              <option value="pill">Pill</option>
-              <option value="liquid">Liquid</option>
-            </select>
-          </div>
+        {form.dependencyType === 'absolute' && (
+          <AbsoluteTimeField
+            value={form.absoluteTime}
+            onChange={handleChange}
+          />
+        )}
 
-          <div className="form-group">
-            <label className="form-label">
-              Amount per Dose *
-            </label>
-            {form.type === 'pill' ? (
-              <input
-                type="number"
-                name="amount"
-                placeholder="Number of pills per dose"
-                value={form.amount}
-                onChange={handleChange}
-                min={1}
-                required
-                className="form-input"
-              />
-            ) : (
-              <input
-                type="number"
-                name="amount"
-                placeholder="Amount in ml per dose"
-                value={form.amount}
-                onChange={handleChange}
-                min={1}
-                required
-                className="form-input"
-              />
-            )}
-          </div>
+        {form.dependencyType === 'meal' && (
+          <MealDependencyFields
+            mealSchedules={mealSchedules}
+            mealScheduleId={form.mealScheduleId}
+            mealTiming={form.mealTiming}
+            mealOffsetMinutes={form.mealOffsetMinutes}
+            onChange={handleChange}
+          />
+        )}
 
-          <div className="form-group">
-            <label className="form-label">
-              Start Date *
-            </label>
-            <input
-              type="date"
-              name="startDate"
-              value={form.startDate}
-              onChange={handleChange}
-              required
-              className="form-input"
-            />
-          </div>
+        {form.dependencyType === 'drug' && (
+          <DrugDependencyFields
+            existingDrugs={existingDrugs}
+            dependsOnDrugId={form.dependsOnDrugId}
+            drugOffsetMinutes={form.drugOffsetMinutes}
+            onChange={handleChange}
+          />
+        )}
 
-          <div className="form-group">
-            <label className="form-label">
-              End Date (Optional)
-            </label>
-            <input
-              type="date"
-              name="endDate"
-              value={form.endDate}
-              onChange={handleChange}
-              className="form-input"
-            />
-          </div>
-
-          {form.dependencyType !== 'absolute' && (
-            <div className="form-group">
-              <label className="form-label">
-                Frequency per Day *
-              </label>
-              <select
-                name="frequencyPerDay"
-                value={form.frequencyPerDay}
-                onChange={handleChange}
-                required
-                className="form-select"
-              >
-                <option value="">Select frequency</option>
-                <option value="1">1 time per day</option>
-                <option value="2">2 times per day</option>
-                <option value="3">3 times per day</option>
-                <option value="4">4 times per day</option>
-                <option value="5">5 times per day</option>
-                <option value="6">6 times per day</option>
-              </select>
-            </div>
-          )}
-
-          {/* Duration removed: derived from start and end dates */}
-
-          <div className="form-group">
-            <label className="form-label">
-              Timing Dependency *
-            </label>
-            <select
-              name="dependencyType"
-              value={form.dependencyType}
-              onChange={handleChange}
-              required
-              className="form-select"
-            >
-              <option value="independent">Independent (no dependency)</option>
-              <option value="absolute">Absolute time</option>
-              <option value="meal">Depends on meal</option>
-              <option value="drug">Depends on another drug</option>
-            </select>
-          </div>
-
-          {/* Absolute Time Dependency */}
-          {form.dependencyType === 'absolute' && (
-            <div className="form-group">
-              <label className="form-label">
-                Time of Day * (Local Time)
-              </label>
-              <input
-                type="time"
-                name="absoluteTime"
-                value={form.absoluteTime}
-                onChange={handleChange}
-                required
-                className="form-input"
-              />
-              {form.absoluteTime && (
-                <div className="timezone-hint">
-                  Will be stored as: {formatTimeWithTimezone(convertLocalTimeToUTC(form.absoluteTime), true)}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Meal Dependency */}
-          {form.dependencyType === 'meal' && (
-            <>
-              <div className="form-group">
-                <label className="form-label">
-                  Meal Schedule *
-                </label>
-                <select
-                  name="mealScheduleId"
-                  value={form.mealScheduleId}
-                  onChange={handleChange}
-                  required
-                  className="form-select"
-                >
-                  <option value="">Select meal</option>
-                  {mealSchedules.map(meal => (
-                    <option key={meal.id} value={meal.id}>
-                      {meal.meal_name} ({meal.base_time})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">
-                  Timing *
-                </label>
-                <select
-                  name="mealTiming"
-                  value={form.mealTiming}
-                  onChange={handleChange}
-                  required
-                  className="form-select"
-                >
-                  <option value="before">Before meal</option>
-                  <option value="after">After meal</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">
-                  Offset (minutes) *
-                </label>
-                <input
-                  type="number"
-                  name="mealOffsetMinutes"
-                  placeholder="Minutes before/after meal"
-                  value={form.mealOffsetMinutes}
-                  onChange={handleChange}
-                  required
-                  min={0}
-                  className="form-input"
-                />
-              </div>
-            </>
-          )}
-
-          {/* Drug Dependency */}
-          {form.dependencyType === 'drug' && (
-            <>
-              <div className="form-group">
-                <label className="form-label">
-                  Depends on Drug *
-                </label>
-                <select
-                  name="dependsOnDrugId"
-                  value={form.dependsOnDrugId}
-                  onChange={handleChange}
-                  required
-                  className="form-select"
-                >
-                  <option value="">Select drug</option>
-                  {existingDrugs.map(drug => (
-                    <option key={drug.id} value={drug.id}>
-                      {drug.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">
-                  Offset (minutes) *
-                </label>
-                <input
-                  type="number"
-                  name="drugOffsetMinutes"
-                  placeholder="Minutes after dependent drug"
-                  value={form.drugOffsetMinutes}
-                  onChange={handleChange}
-                  required
-                  className="form-input"
-                />
-              </div>
-            </>
-          )}
-
-          <div className="drug-form-actions">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="drug-form-button cancel-button"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="drug-form-button submit-button"
-            >
-              {loading ? (editingDrug ? 'Updating...' : 'Adding...') : (editingDrug ? 'Update Drug' : 'Add Drug')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <FormActions
+          onCancel={onCancel}
+          submitLabel={editingDrug ? 'Update Drug' : 'Add Drug'}
+          loading={loading}
+        />
+      </Form>
+    </Modal>
   );
 };
 

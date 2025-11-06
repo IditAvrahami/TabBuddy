@@ -1,4 +1,8 @@
 import React from 'react';
+import Nav from './primitives/Nav';
+import Container from './primitives/Container';
+import Text from './primitives/Text';
+import Button from './primitives/Button';
 import Icon from './Icon';
 import './Navbar.css';
 
@@ -9,29 +13,29 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
   return (
-    <nav className="navbar">
-      <div className="navbar-brand">
+    <Nav className="navbar">
+      <Container className="navbar-brand">
         <Icon name="tab-icon" size={48} className="navbar-logo" />
-        <h1 className="navbar-title">
+        <Text variant="h1" className="navbar-title">
           TabBuddy
-        </h1>
-      </div>
+        </Text>
+      </Container>
 
-      <div className="navbar-tabs">
-        <button
+      <Container className="navbar-tabs">
+        <Button
           onClick={() => onTabChange('drugs')}
           className={`navbar-tab ${activeTab === 'drugs' ? 'active' : ''}`}
         >
           Drugs
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => onTabChange('settings')}
           className={`navbar-tab ${activeTab === 'settings' ? 'active' : ''}`}
         >
           Settings
-        </button>
-      </div>
-    </nav>
+        </Button>
+      </Container>
+    </Nav>
   );
 };
 

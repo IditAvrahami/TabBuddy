@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import { api, type DrugDto, type DrugCreateDto, type NotificationDto } from './api';
+import Container from './components/primitives/Container';
 import Navbar from './components/Navbar';
 import DrugList from './components/DrugList';
 import DrugForm from './components/DrugForm';
@@ -191,7 +192,7 @@ function App() {
   };
 
   return (
-    <div className="App">
+    <Container className="App">
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
 
       {activeTab === 'drugs' ? (
@@ -223,7 +224,7 @@ function App() {
         onDismiss={handleDismiss}
         onClose={closeNotification}
       />
-    </div>
+    </Container>
   );
 }
 
