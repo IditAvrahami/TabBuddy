@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.models import DrugSchedule, DependencyType, NotificationOverride, TimelineCalculator, TimelineItem
+from backend.models import DrugSchedule, DependencyType, NotificationOverride
+from backend.services.timeline_calculator import TimelineCalculator
 
 
 logger = logging.getLogger(__name__)
