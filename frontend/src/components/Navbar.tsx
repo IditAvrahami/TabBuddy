@@ -17,22 +17,22 @@ const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange }) => {
       borderRadius: '24px 24px 0 0'
     }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <img 
-          src={process.env.PUBLIC_URL + '/tab-icon.png'} 
-          alt="TabBuddy logo" 
-          style={{ width: 48, height: 48, marginRight: 12 }} 
+        <img
+          src={process.env.PUBLIC_URL + '/tab-icon.png'}
+          alt="TabBuddy logo"
+          style={{ width: 48, height: 48, marginRight: 12 }}
         />
-        <h1 style={{ 
-          color: '#4A3A2F', 
-          fontWeight: 800, 
-          fontSize: '2rem', 
-          margin: 0, 
-          letterSpacing: 1 
+        <h1 style={{
+          color: '#4A3A2F',
+          fontWeight: 800,
+          fontSize: '2rem',
+          margin: 0,
+          letterSpacing: 1
         }}>
           TabBuddy
         </h1>
       </div>
-      
+
       <div style={{ display: 'flex', gap: '1rem' }}>
         <button
           onClick={() => onTabChange('drugs')}

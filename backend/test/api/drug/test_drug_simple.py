@@ -1,10 +1,15 @@
-import pytest
 import os
 
-# Set test database URL before importing backend modules
-os.environ["DATABASE_URL"] = os.getenv("TEST_DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost:5434/tabbuddy_test")
+from fastapi.testclient import TestClient
 
-def test_add_drug(test_client):
+# Set test database URL before importing backend modules
+os.environ["DATABASE_URL"] = os.getenv(
+    "TEST_DATABASE_URL",
+    "postgresql+psycopg2://postgres:postgres@localhost:5434/tabbuddy_test",
+)
+
+
+def test_add_drug(test_client: TestClient) -> None:
     """Simple test to add a drug"""
     payload = {
         "name": "Aspirin",
@@ -13,7 +18,7 @@ def test_add_drug(test_client):
         "duration": 5,
         "amount_per_day": 2,
     }
-    
+
     resp = test_client.post("/drug", json=payload)
     assert resp.status_code == 200
     data = resp.json()
@@ -21,14 +26,16 @@ def test_add_drug(test_client):
     assert data["kind"] == "pill"
     assert data["amount_per_dose"] == 1
 
-def test_get_drugs(test_client):
+
+def test_get_drugs(test_client: TestClient) -> None:
     """Simple test to get all drugs"""
     resp = test_client.get("/drug")
     assert resp.status_code == 200
     data = resp.json()
     assert isinstance(data, list)
 
-def test_add_duplicate_drug(test_client):
+
+def test_add_duplicate_drug(test_client: TestClient) -> None:
     """Test adding duplicate drug"""
     payload = {
         "name": "Aspirin",
@@ -37,17 +44,18 @@ def test_add_duplicate_drug(test_client):
         "duration": 5,
         "amount_per_day": 2,
     }
-    
+
     # First add
     resp1 = test_client.post("/drug", json=payload)
     assert resp1.status_code == 200
-    
+
     # Try to add again
     resp2 = test_client.post("/drug", json=payload)
     assert resp2.status_code == 400
     assert resp2.json()["detail"] == "Drug already exists"
 
-def test_update_drug(test_client):
+
+def test_update_drug(test_client: TestClient) -> None:
     """Test updating a drug"""
     # First add a drug
     add_payload = {
@@ -59,7 +67,7 @@ def test_update_drug(test_client):
     }
     resp = test_client.post("/drug", json=add_payload)
     assert resp.status_code == 200
-    
+
     # Update the drug
     update_payload = {
         "name": "Ibuprofen",
@@ -72,9 +80,10 @@ def test_update_drug(test_client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["name"] == "Ibuprofen"
-    assert data["amount_per_dose"] == update_payload['amount_per_dose']
+    assert data["amount_per_dose"] == update_payload["amount_per_dose"]
 
-def test_delete_drug(test_client):
+
+def test_delete_drug(test_client: TestClient) -> None:
     """Test deleting a drug"""
     # First add a drug
     payload = {
@@ -86,14 +95,15 @@ def test_delete_drug(test_client):
     }
     resp = test_client.post("/drug", json=payload)
     assert resp.status_code == 200
-    
+
     # Delete the drug
     resp = test_client.delete("/drug/VitaminC")
     assert resp.status_code == 200
     data = resp.json()
     assert data["name"] == "VitaminC"
 
-def test_delete_nonexistent_drug(test_client):
+
+def test_delete_nonexistent_drug(test_client: TestClient) -> None:
     """Test deleting a drug that doesn't exist"""
     resp = test_client.delete("/drug/NonExistent")
     assert resp.status_code == 404

@@ -29,17 +29,17 @@ const DrugList: React.FC<DrugListProps> = ({ drugs, loading, error, onAddDrug, o
   };
   return (
     <div style={{ padding: '2rem' }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '2rem' 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '2rem'
       }}>
-        <h2 style={{ 
-          color: '#4A3A2F', 
-          fontWeight: 700, 
+        <h2 style={{
+          color: '#4A3A2F',
+          fontWeight: 700,
           fontSize: '1.8rem',
-          margin: 0 
+          margin: 0
         }}>
           My Drugs
         </h2>
@@ -75,8 +75,8 @@ const DrugList: React.FC<DrugListProps> = ({ drugs, loading, error, onAddDrug, o
       </div>
 
       {error && (
-        <div style={{ 
-          color: '#b00020', 
+        <div style={{
+          color: '#b00020',
           background: '#ffebee',
           padding: '1rem',
           borderRadius: '8px',
@@ -88,8 +88,8 @@ const DrugList: React.FC<DrugListProps> = ({ drugs, loading, error, onAddDrug, o
       )}
 
       {loading ? (
-        <div style={{ 
-          textAlign: 'center', 
+        <div style={{
+          textAlign: 'center',
           padding: '2rem',
           color: '#4A3A2F',
           fontSize: '1.1rem'
@@ -97,8 +97,8 @@ const DrugList: React.FC<DrugListProps> = ({ drugs, loading, error, onAddDrug, o
           Loading drugs...
         </div>
       ) : drugs.length === 0 ? (
-        <div style={{ 
-          textAlign: 'center', 
+        <div style={{
+          textAlign: 'center',
           padding: '3rem',
           color: '#4A3A2F',
           background: '#fff',
@@ -112,12 +112,12 @@ const DrugList: React.FC<DrugListProps> = ({ drugs, loading, error, onAddDrug, o
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {drugs.map((drug, idx) => (
-            <div 
-              key={idx} 
-              style={{ 
-                background: '#fff', 
-                borderRadius: '16px', 
-                boxShadow: '0 2px 8px #8ed1fc22', 
+            <div
+              key={idx}
+              style={{
+                background: '#fff',
+                borderRadius: '16px',
+                boxShadow: '0 2px 8px #8ed1fc22',
                 padding: '1.5rem',
                 display: 'flex',
                 alignItems: 'center',
@@ -133,67 +133,67 @@ const DrugList: React.FC<DrugListProps> = ({ drugs, loading, error, onAddDrug, o
                 e.currentTarget.style.boxShadow = '0 2px 8px #8ed1fc22';
               }}
             >
-              <div style={{ 
-                display: 'inline-block', 
-                width: 48, 
-                height: 48, 
-                borderRadius: 24, 
-                background: drug.kind === 'pill' 
-                  ? 'linear-gradient(180deg, #8ED1FC 50%, #F6A96B 50%)' 
-                  : 'linear-gradient(180deg, #F6A96B 50%, #8ED1FC 50%)', 
-                marginRight: 20, 
-                border: '3px solid #8ED1FC', 
+              <div style={{
+                display: 'inline-block',
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                background: drug.kind === 'pill'
+                  ? 'linear-gradient(180deg, #8ED1FC 50%, #F6A96B 50%)'
+                  : 'linear-gradient(180deg, #F6A96B 50%, #8ED1FC 50%)',
+                marginRight: 20,
+                border: '3px solid #8ED1FC',
                 position: 'relative',
                 flexShrink: 0
               }}>
-                <span style={{ 
-                  position: 'absolute', 
-                  left: 12, 
-                  top: 12, 
-                  width: 6, 
-                  height: 6, 
-                  background: '#4A3A2F', 
-                  borderRadius: '50%' 
+                <span style={{
+                  position: 'absolute',
+                  left: 12,
+                  top: 12,
+                  width: 6,
+                  height: 6,
+                  background: '#4A3A2F',
+                  borderRadius: '50%'
                 }}></span>
-                <span style={{ 
-                  position: 'absolute', 
-                  right: 12, 
-                  top: 12, 
-                  width: 6, 
-                  height: 6, 
-                  background: '#4A3A2F', 
-                  borderRadius: '50%' 
+                <span style={{
+                  position: 'absolute',
+                  right: 12,
+                  top: 12,
+                  width: 6,
+                  height: 6,
+                  background: '#4A3A2F',
+                  borderRadius: '50%'
                 }}></span>
-                <span style={{ 
-                  position: 'absolute', 
-                  left: 15, 
-                  top: 24, 
-                  width: 18, 
-                  height: 6, 
-                  borderRadius: 3, 
-                  background: '#4A3A2F' 
+                <span style={{
+                  position: 'absolute',
+                  left: 15,
+                  top: 24,
+                  width: 18,
+                  height: 6,
+                  borderRadius: 3,
+                  background: '#4A3A2F'
                 }}></span>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ 
-                  fontWeight: 700, 
-                  color: '#4A3A2F', 
+                <div style={{
+                  fontWeight: 700,
+                  color: '#4A3A2F',
                   fontSize: '1.2rem',
                   marginBottom: '0.5rem'
                 }}>
                   {drug.name}
                 </div>
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                   gap: '0.5rem',
-                  color: '#4A3A2F', 
-                  fontSize: '0.95rem' 
+                  color: '#4A3A2F',
+                  fontSize: '0.95rem'
                 }}>
                   <div><strong>Type:</strong> {drug.kind.charAt(0).toUpperCase() + drug.kind.slice(1)}</div>
                   <div>
-                    <strong>Amount:</strong> {drug.kind === 'pill' 
-                      ? `${drug.amount_per_dose} pill(s) per dose` 
+                    <strong>Amount:</strong> {drug.kind === 'pill'
+                      ? `${drug.amount_per_dose} pill(s) per dose`
                       : `${drug.amount_per_dose} ml per dose`
                     }
                   </div>
@@ -203,9 +203,9 @@ const DrugList: React.FC<DrugListProps> = ({ drugs, loading, error, onAddDrug, o
                   <div><strong>Timing:</strong> {getTimingDescription(drug)}</div>
                 </div>
               </div>
-              
-              <div style={{ 
-                display: 'flex', 
+
+              <div style={{
+                display: 'flex',
                 gap: '0.5rem',
                 flexShrink: 0
               }}>

@@ -11,12 +11,12 @@ import os
 def connect_to_main_db():
     """Connect to main database using pgcli"""
     print("🔍 Setting up main database connection...")
-    
+
     # Check if main database is running
     result = subprocess.run([
         "docker", "ps", "--filter", "name=tabbuddy-db", "--format", "{{.Names}}"
     ], capture_output=True, text=True)
-    
+
     if "tabbuddy-db" not in result.stdout:
         print("📦 Starting main database...")
         print("   Run: docker-compose up -d db")
@@ -24,10 +24,10 @@ def connect_to_main_db():
         sys.exit(1)
     else:
         print("✅ Main database is running")
-    
+
     # Database connection details
     db_url = "postgresql://postgres:postgres@localhost:5433/tabbuddy"
-    
+
     print("🚀 Connecting to main database with pgcli...")
     print("💡 Useful commands:")
     print("   - \\dt                    : List all tables")
@@ -36,7 +36,7 @@ def connect_to_main_db():
     print("   - \\q                    : Quit pgcli")
     print("   - \\?                    : Show help")
     print()
-    
+
     try:
         # Connect with pgcli using python -m
         subprocess.run([
@@ -51,4 +51,3 @@ def connect_to_main_db():
 
 if __name__ == "__main__":
     connect_to_main_db()
-

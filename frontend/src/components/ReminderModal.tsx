@@ -25,7 +25,7 @@ const ReminderModal: React.FC<ReminderModalProps> = ({
 
   const handleSnooze = async () => {
     if (isProcessing || !notification) return;
-    
+
     setIsProcessing(true);
     try {
       await onSnooze(notification.schedule_id, snoozeMinutes);
@@ -37,7 +37,7 @@ const ReminderModal: React.FC<ReminderModalProps> = ({
 
   const handleDismiss = async () => {
     if (isProcessing || !notification) return;
-    
+
     setIsProcessing(true);
     try {
       await onDismiss(notification.schedule_id);
@@ -49,10 +49,10 @@ const ReminderModal: React.FC<ReminderModalProps> = ({
 
   const formatTime = (isoString: string) => {
     const date = new Date(isoString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     });
   };
 
@@ -79,16 +79,16 @@ const ReminderModal: React.FC<ReminderModalProps> = ({
         fontFamily: 'Nunito, Quicksand, sans-serif',
       }}>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <h2 style={{ 
-            margin: '0 0 8px 0', 
+          <h2 style={{
+            margin: '0 0 8px 0',
             color: '#2c3e50',
             fontSize: '20px',
             fontWeight: '600'
           }}>
             💊 Time to take your medication
           </h2>
-          <p style={{ 
-            margin: '0', 
+          <p style={{
+            margin: '0',
             color: '#7f8c8d',
             fontSize: '14px'
           }}>
@@ -96,9 +96,9 @@ const ReminderModal: React.FC<ReminderModalProps> = ({
           </p>
         </div>
 
-        <div style={{ 
-          backgroundColor: '#f8f9fa', 
-          padding: '16px', 
+        <div style={{
+          backgroundColor: '#f8f9fa',
+          padding: '16px',
           borderRadius: '8px',
           marginBottom: '20px'
         }}>
@@ -106,15 +106,15 @@ const ReminderModal: React.FC<ReminderModalProps> = ({
             <strong style={{ color: '#2c3e50' }}>{notification.drug_name}</strong>
           </div>
           <div style={{ color: '#7f8c8d', fontSize: '14px' }}>
-            {notification.amount_per_dose} {notification.kind === 'pill' ? 'pill(s)' : 'ml'} 
+            {notification.amount_per_dose} {notification.kind === 'pill' ? 'pill(s)' : 'ml'}
             {notification.dependency_type === 'absolute' && ' at scheduled time'}
           </div>
         </div>
 
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ 
-            display: 'block', 
-            marginBottom: '8px', 
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
             color: '#2c3e50',
             fontSize: '14px',
             fontWeight: '500'
@@ -141,8 +141,8 @@ const ReminderModal: React.FC<ReminderModalProps> = ({
           </select>
         </div>
 
-        <div style={{ 
-          display: 'flex', 
+        <div style={{
+          display: 'flex',
           gap: '12px',
           justifyContent: 'flex-end'
         }}>

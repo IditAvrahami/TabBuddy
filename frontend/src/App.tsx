@@ -14,7 +14,7 @@ function App() {
   const [drugs, setDrugs] = useState<DrugDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Notification state
   const [activeNotification, setActiveNotification] = useState<NotificationDto | null>(null);
   const [notificationQueue, setNotificationQueue] = useState<NotificationDto[]>([]);
@@ -39,14 +39,14 @@ function App() {
     try {
       const today = new Date().toISOString().split('T')[0];
       const notifications = await api.getNotifications(today);
-      
+
       console.log(`Polling notifications: ${notifications.length} due now`);
-      
+
       // Backend handles all timing logic - just add new notifications to queue
       setNotificationQueue(prev => {
         const existingIds = new Set(prev.map(n => n.schedule_id));
         const newNotifications = notifications.filter(n => !existingIds.has(n.schedule_id));
-        
+
         if (newNotifications.length > 0) {
           console.log(`Adding ${newNotifications.length} new notifications to queue`);
         }
@@ -74,13 +74,13 @@ function App() {
       const today = new Date().toISOString().split('T')[0];
       await api.snoozeNotification(scheduleId, minutes, today);
       console.log(`Snoozed notification for ${minutes} minutes`);
-      
+
       // Remove from queue - the notification will reappear when backend says it's time
       setNotificationQueue(prev => prev.filter(n => n.schedule_id !== scheduleId));
-      
+
       // Close the modal
       setActiveNotification(null);
-      
+
     } catch (err) {
       console.error('Failed to snooze notification:', err);
     }
@@ -91,13 +91,13 @@ function App() {
       const today = new Date().toISOString().split('T')[0];
       await api.dismissNotification(scheduleId, today);
       console.log('Dismissed notification');
-      
+
       // Remove from queue permanently
       setNotificationQueue(prev => prev.filter(n => n.schedule_id !== scheduleId));
-      
+
       // Close the modal
       setActiveNotification(null);
-      
+
     } catch (err) {
       console.error('Failed to dismiss notification:', err);
     }
@@ -109,14 +109,14 @@ function App() {
 
   useEffect(() => {
     loadDrugs();
-    
+
     // Start polling for notifications every 5 seconds (for testing)
     const timer = setInterval(pollNotifications, 5000);
     setPollTimer(timer);
-    
+
     // Initial poll
     pollNotifications();
-    
+
     return () => {
       if (timer) clearInterval(timer);
     };
@@ -191,19 +191,19 @@ function App() {
   };
 
   return (
-    <div className="App" style={{ 
-      maxWidth: 800, 
-      margin: '2rem auto', 
-      fontFamily: 'Nunito, Quicksand, sans-serif', 
-      background: '#FFFCF6', 
-      borderRadius: 24, 
+    <div className="App" style={{
+      maxWidth: 800,
+      margin: '2rem auto',
+      fontFamily: 'Nunito, Quicksand, sans-serif',
+      background: '#FFFCF6',
+      borderRadius: 24,
       boxShadow: '0 4px 24px #f6a96b22',
       overflow: 'hidden'
     }}>
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
-      
+
       {activeTab === 'drugs' ? (
-        <DrugList 
+        <DrugList
           drugs={drugs}
           loading={loading}
           error={error}

@@ -1,11 +1,13 @@
-from datetime import date, time
-from freezegun import freeze_time
+from datetime import date
 
 from fastapi.testclient import TestClient
+from freezegun import freeze_time
 
 
-def create_absolute_payload(name: str, hhmm: str, start: str, end: str | None = None):
-    payload = {
+def create_absolute_payload(
+    name: str, hhmm: str, start: str, end: str | None = None
+) -> dict[str, str | int | None]:
+    payload: dict[str, str | int | None] = {
         "name": name,
         "kind": "pill",
         "amount_per_dose": 1,
@@ -19,10 +21,11 @@ def create_absolute_payload(name: str, hhmm: str, start: str, end: str | None = 
 
 
 @freeze_time("2025-10-26 20:00:00")
-def test_notifications_returns_absolute_within_range(test_client: TestClient):
+def test_notifications_returns_absolute_within_range(test_client: TestClient) -> None:
     # Arrange: create an absolute schedule valid today with time very close to now
     today = date.today().isoformat()
-    from datetime import datetime, timedelta
+    from datetime import datetime
+
     now = datetime.now()
     # Create a notification that's due right now (within the 5-minute window)
     future_time_dt = now
@@ -45,11 +48,12 @@ def test_notifications_returns_absolute_within_range(test_client: TestClient):
 
 
 @freeze_time("2025-10-26 20:00:00")
-def test_notifications_snooze(test_client: TestClient):
+def test_notifications_snooze(test_client: TestClient) -> None:
     """Test that snoozing a notification works correctly"""
     today = date.today().isoformat()
     # Use current time (exactly now) to ensure it's within the 5-minute window
-    from datetime import datetime, timedelta
+    from datetime import datetime
+
     now = datetime.now()
     current_time = now.strftime("%H:%M")
     payload = create_absolute_payload("SnoozeDrug", current_time, today, today)
@@ -76,11 +80,12 @@ def test_notifications_snooze(test_client: TestClient):
 
 
 @freeze_time("2025-10-26 20:00:00")
-def test_notifications_dismiss(test_client: TestClient):
+def test_notifications_dismiss(test_client: TestClient) -> None:
     """Test that dismissing a notification works correctly"""
     today = date.today().isoformat()
     # Use current time (exactly now) to ensure it's within the 5-minute window
-    from datetime import datetime, timedelta
+    from datetime import datetime
+
     now = datetime.now()
     current_time = now.strftime("%H:%M")
     payload = create_absolute_payload("DismissDrug", current_time, today, today)
@@ -107,11 +112,12 @@ def test_notifications_dismiss(test_client: TestClient):
 
 
 @freeze_time("2025-10-26 20:00:00")
-def test_notifications_snooze_reappears_after_time(test_client: TestClient):
+def test_notifications_snooze_reappears_after_time(test_client: TestClient) -> None:
     """Test that snoozed notifications pop up again after snooze time expires"""
     today = date.today().isoformat()
     # Create a notification that's due right now (within the 5-minute window)
-    from datetime import datetime, timedelta
+    from datetime import datetime
+
     now = datetime.now()
     current_time = now.strftime("%H:%M")
     payload = create_absolute_payload("SnoozeReappearDrug", current_time, today, today)
@@ -144,11 +150,12 @@ def test_notifications_snooze_reappears_after_time(test_client: TestClient):
 
 
 @freeze_time("2025-10-26 20:00:00")
-def test_notifications_snooze_multiple_reappearances(test_client: TestClient):
+def test_notifications_snooze_multiple_reappearances(test_client: TestClient) -> None:
     """Test that notifications can be snoozed multiple times and reappear each time"""
     today = date.today().isoformat()
     # Create a notification that's due right now
-    from datetime import datetime, timedelta
+    from datetime import datetime
+
     now = datetime.now()
     current_time = now.strftime("%H:%M")
     payload = create_absolute_payload("MultiSnoozeDrug", current_time, today, today)
@@ -189,7 +196,7 @@ def test_notifications_snooze_multiple_reappearances(test_client: TestClient):
         assert notif_reappear2[0]["drug_name"] == "MultiSnoozeDrug"
 
 
-def test_notifications_returns_empty_out_of_range(test_client: TestClient):
+def test_notifications_returns_empty_out_of_range(test_client: TestClient) -> None:
     # Arrange: create schedule for tomorrow
     today = date.today()
     tomorrow = date.fromordinal(today.toordinal() + 1).isoformat()
@@ -203,7 +210,7 @@ def test_notifications_returns_empty_out_of_range(test_client: TestClient):
     assert resp.json() == []
 
 
-def test_notifications_none_after_delete(test_client: TestClient):
+def test_notifications_none_after_delete(test_client: TestClient) -> None:
     # Arrange
     today = date.today().isoformat()
     payload = create_absolute_payload("ToDelete", "08:30", today, today)
@@ -223,11 +230,12 @@ def test_notifications_none_after_delete(test_client: TestClient):
 
 
 @freeze_time("2025-10-26 20:00:00")
-def test_notifications_snooze_multiple_times(test_client: TestClient):
+def test_notifications_snooze_multiple_times(test_client: TestClient) -> None:
     """Test that snoozing multiple times works correctly"""
     today = date.today().isoformat()
     # Use a time that's due right now (within 5-minute window)
-    from datetime import datetime, timedelta
+    from datetime import datetime
+
     now = datetime.now()
     current_time = now.strftime("%H:%M")
     payload = create_absolute_payload("MultiSnoozeDrug", current_time, today, today)
@@ -262,14 +270,17 @@ def test_notifications_snooze_multiple_times(test_client: TestClient):
 
 
 @freeze_time("2025-10-26 20:00:00")
-def test_notifications_snooze_then_dismiss(test_client: TestClient):
+def test_notifications_snooze_then_dismiss(test_client: TestClient) -> None:
     """Test that dismissing a snoozed notification works correctly"""
     today = date.today().isoformat()
     # Use a time that's due right now (within 5-minute window)
-    from datetime import datetime, timedelta
+    from datetime import datetime
+
     now = datetime.now()
     current_time = now.strftime("%H:%M")
-    payload = create_absolute_payload("SnoozeThenDismissDrug", current_time, today, today)
+    payload = create_absolute_payload(
+        "SnoozeThenDismissDrug", current_time, today, today
+    )
     r = test_client.post("/drug", json=payload)
     assert r.status_code == 200
     schedule = r.json()
@@ -301,14 +312,17 @@ def test_notifications_snooze_then_dismiss(test_client: TestClient):
 
 
 @freeze_time("2025-10-26 20:00:00")
-def test_notifications_dismiss_then_snooze(test_client: TestClient):
+def test_notifications_dismiss_then_snooze(test_client: TestClient) -> None:
     """Test that snoozing a dismissed notification works correctly"""
     today = date.today().isoformat()
     # Use a time that's due right now (within 5-minute window)
-    from datetime import datetime, timedelta
+    from datetime import datetime
+
     now = datetime.now()
     current_time = now.strftime("%H:%M")
-    payload = create_absolute_payload("DismissThenSnoozeDrug", current_time, today, today)
+    payload = create_absolute_payload(
+        "DismissThenSnoozeDrug", current_time, today, today
+    )
     r = test_client.post("/drug", json=payload)
     assert r.status_code == 200
     schedule = r.json()
@@ -340,11 +354,14 @@ def test_notifications_dismiss_then_snooze(test_client: TestClient):
 
 
 @freeze_time("2025-10-26 20:00:00")
-def test_notifications_update_time_clears_snooze_and_reappears(test_client: TestClient):
+def test_notifications_update_time_clears_snooze_and_reappears(
+    test_client: TestClient,
+) -> None:
     """Test that updating a drug's absolute_time clears snoozes and notification reappears with new time"""
     today = date.today().isoformat()
     # Create a drug with time at 20:00 (current time)
     from datetime import datetime, timedelta
+
     now = datetime.now()
     original_time = now.strftime("%H:%M")  # 20:00
     payload = create_absolute_payload("UpdateTimeDrug", original_time, today, today)
@@ -390,18 +407,24 @@ def test_notifications_update_time_clears_snooze_and_reappears(test_client: Test
     update_data = update_resp.json()
     assert update_data["name"] == "UpdateTimeDrug"
     # absolute_time is returned as ISO format (HH:MM:SS), compare just HH:MM part
-    assert update_data["absolute_time"].startswith(new_time) or update_data["absolute_time"] == new_time
+    assert (
+        update_data["absolute_time"].startswith(new_time)
+        or update_data["absolute_time"] == new_time
+    )
 
     # Step 5: Fast forward to when the new time is due (20:01:00)
     # The notification window is -60 to +5 seconds, so at 20:01:00, a notification for 20:01:00 should appear
     with freeze_time("2025-10-26 20:01:00"):
         notif_after_update = test_client.get("/notifications").json()
-        assert len(notif_after_update) == 1, "Notification should reappear after updating time (override was cleared)"
+        assert (
+            len(notif_after_update) == 1
+        ), "Notification should reappear after updating time (override was cleared)"
         assert notif_after_update[0]["drug_name"] == "UpdateTimeDrug"
         # Verify it uses the new time (should be 20:01:00)
         scheduled_time_str = notif_after_update[0]["scheduled_time"]
-        assert "20:01" in scheduled_time_str, \
-            f"Notification should use new time {new_time}, got {scheduled_time_str}"
+        assert (
+            "20:01" in scheduled_time_str
+        ), f"Notification should use new time {new_time}, got {scheduled_time_str}"
 
     # Step 6: Verify that snoozing again uses the NEW time, not the old one
     # Fast forward back to 20:01:00 to snooze
@@ -414,15 +437,18 @@ def test_notifications_update_time_clears_snooze_and_reappears(test_client: Test
 
         # Notification should disappear (it's now 20:11:00, but we're at 20:01:00)
         notif_after_second_snooze = test_client.get("/notifications").json()
-        assert len(notif_after_second_snooze) == 0, "Notification should disappear after second snooze"
+        assert (
+            len(notif_after_second_snooze) == 0
+        ), "Notification should disappear after second snooze"
 
     # Fast forward to 20:11:00 (when the snooze expires) - notification should reappear
     with freeze_time("2025-10-26 20:11:00"):
         notif_after_snooze_expires = test_client.get("/notifications").json()
-        assert len(notif_after_snooze_expires) == 1, "Notification should reappear after snooze expires"
+        assert (
+            len(notif_after_snooze_expires) == 1
+        ), "Notification should reappear after snooze expires"
         assert notif_after_snooze_expires[0]["drug_name"] == "UpdateTimeDrug"
         # The scheduled_time should be based on the new time (20:01:00) + 10 minutes snooze = 20:11:00
-        assert "20:11" in notif_after_snooze_expires[0]["scheduled_time"], \
-            "Notification time should reflect the new base time plus snooze"
-
-
+        assert (
+            "20:11" in notif_after_snooze_expires[0]["scheduled_time"]
+        ), "Notification time should reflect the new base time plus snooze"

@@ -17,12 +17,12 @@ from tools.start_test_db import start_test_db, stop_test_db
 def connect_to_test_db():
     """Connect to test database using pgcli"""
     print("🔍 Setting up database connection...")
-    
+
     # Check if test database is already running
     result = subprocess.run([
         "docker", "ps", "--filter", "name=tabbuddy-test-db", "--format", "{{.Names}}"
     ], capture_output=True, text=True)
-    
+
     if "tabbuddy-test-db" not in result.stdout:
         print("📦 Starting test database...")
         if not start_test_db():
@@ -30,10 +30,10 @@ def connect_to_test_db():
             sys.exit(1)
     else:
         print("✅ Test database is already running")
-    
+
     # Database connection details
     db_url = "postgresql://postgres:postgres@localhost:5434/tabbuddy_test"
-    
+
     print("🚀 Connecting to test database with pgcli...")
     print("💡 Useful commands:")
     print("   - \\dt                    : List all tables")
@@ -42,7 +42,7 @@ def connect_to_test_db():
     print("   - \\q                    : Quit pgcli")
     print("   - \\?                    : Show help")
     print()
-    
+
     try:
         # Connect with pgcli using python -m
         subprocess.run([
@@ -57,4 +57,3 @@ def connect_to_test_db():
 
 if __name__ == "__main__":
     connect_to_test_db()
-

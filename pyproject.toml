@@ -24,6 +24,8 @@ extend-exclude = '''
 [tool.ruff]
 line-length = 88
 target-version = "py312"
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -39,31 +41,43 @@ ignore = [
     "C901",  # too complex
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # unused imports in __init__.py are common
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["backend"]
 
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
 check_untyped_defs = true
-disallow_untyped_decorators = false
+disallow_untyped_decorators = true
 no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
-ignore_missing_imports = true
+ignore_missing_imports = false
 follow_imports = "normal"
 show_error_codes = true
+strict_optional = true
+strict_equality = true
+strict = true
+# Additional strict flags beyond strict = true
+warn_unreachable = true
+explicit_package_bases = true
+# Enable additional error codes (only valid ones for mypy 1.8.0)
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+# Plugins for better type checking
+plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]
+
+# Minimal override for pytest - fixture decorator is untyped but functions are typed
+[[tool.mypy.overrides]]
+module = "pytest"
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = [
-    "alembic.*",
-    "psycopg2.*",
-]
-ignore_missing_imports = true
+module = "backend.test.*"
+disallow_untyped_decorators = false

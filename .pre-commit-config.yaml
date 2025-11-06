@@ -36,7 +36,17 @@ repos:
     hooks:
       - id: mypy
         files: ^backend/
-        args: [--ignore-missing-imports, --no-strict-optional]
+        additional_dependencies: [
+            sqlalchemy>=2.0.0,
+            pydantic>=2.0.0,
+            fastapi>=0.100.0,
+            types-python-dateutil,
+            psycopg2-binary,
+            alembic,
+            freezegun,
+            pytest>=7.0.0,
+          ]
+        args: [--config-file=pyproject.toml]
 
   # Pytest - Python tests
   - repo: local
@@ -54,7 +64,7 @@ repos:
     hooks:
       - id: eslint-frontend
         name: eslint-frontend
-        entry: sh -c 'cd frontend && npm run lint:fix'
+        entry: cmd /c "cd frontend && npm run lint:fix"
         language: system
         files: ^frontend/src/.*\.(js|jsx|ts|tsx)$
         pass_filenames: false
@@ -64,7 +74,7 @@ repos:
     hooks:
       - id: typescript-check
         name: typescript-check
-        entry: sh -c 'cd frontend && npm run type-check'
+        entry: cmd /c "cd frontend && npm run type-check"
         language: system
         files: ^frontend/src/.*\.(ts|tsx)$
         pass_filenames: false
@@ -74,7 +84,7 @@ repos:
     hooks:
       - id: jest-frontend
         name: jest-frontend
-        entry: sh -c 'cd frontend && npm run test:ci'
+        entry: cmd /c "cd frontend && npm run test:ci"
         language: system
         files: ^frontend/src/.*\.(js|jsx|ts|tsx)$
         pass_filenames: false

@@ -12,11 +12,11 @@ TODAY = date.today().isoformat()
 
 def create_utc_notification():
     """Create a drug that will trigger notification at the current UTC time."""
-    
+
     # Get current UTC time
     utc_now = datetime.utcnow()
     utc_time = utc_now.strftime("%H:%M")
-    
+
     drug_payload = {
         "name": f"UTC Test {utc_now.strftime('%H%M%S')}",
         "kind": "pill",
@@ -27,11 +27,11 @@ def create_utc_notification():
         "dependency_type": "absolute",
         "absolute_time": utc_time
     }
-    
+
     print(f"Creating drug with notification at: {utc_time} UTC")
     print(f"Current UTC time: {utc_now.strftime('%H:%M:%S')}")
     print("The notification should appear immediately!")
-    
+
     try:
         response = requests.post(f"{API_BASE}/drug", json=drug_payload)
         if response.status_code == 200:
@@ -44,4 +44,3 @@ def create_utc_notification():
 
 if __name__ == "__main__":
     create_utc_notification()
-
