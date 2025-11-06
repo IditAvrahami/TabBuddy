@@ -46,7 +46,7 @@ repos:
             freezegun,
             pytest>=7.0.0,
           ]
-        args: [--config-file=pyproject.toml]
+        args: [--config-file=backend/pyproject.toml]
 
   # Pytest - Python tests
   - repo: local

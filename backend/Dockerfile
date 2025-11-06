@@ -12,7 +12,6 @@ COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
 COPY backend /app/backend
-COPY pytest.ini /app/pytest.ini
 
 ENV DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/tabbuddy
 
