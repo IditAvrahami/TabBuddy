@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DrugDto, DrugCreateDto, DependencyType, api } from '../api';
 import { convertLocalTimeToUTC, convertUTCToLocalTime, formatTimeWithTimezone } from '../utils/timezone';
+import './DrugForm.css';
 
 interface DrugFormProps {
   onSubmit: (drug: DrugCreateDto) => Promise<void>;
@@ -97,75 +98,23 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        background: '#FFFCF6',
-        borderRadius: '24px',
-        padding: '2rem',
-        maxWidth: '500px',
-        width: '90%',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1.5rem'
-        }}>
-          <h2 style={{
-            color: '#4A3A2F',
-            fontWeight: 700,
-            fontSize: '1.8rem',
-            margin: 0
-          }}>
+    <div className="drug-form-overlay">
+      <div className="drug-form-container">
+        <div className="drug-form-header">
+          <h2 className="drug-form-title">
             {editingDrug ? 'Edit Drug' : 'Add New Drug'}
           </h2>
           <button
             onClick={onCancel}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              fontSize: '24px',
-              color: '#4A3A2F',
-              cursor: 'pointer',
-              padding: '0.5rem',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
+            className="drug-form-close-button"
           >
             ×
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem'
-        }}>
-          <div>
-            <label style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: 600,
-              color: '#4A3A2F'
-            }}>
+        <form onSubmit={handleSubmit} className="drug-form">
+          <div className="form-group">
+            <label className="form-label">
               Drug Name *
             </label>
             <input
@@ -175,24 +124,12 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
               value={form.name}
               onChange={handleChange}
               required
-              style={{
-                width: '100%',
-                borderRadius: '12px',
-                border: '2px solid #8ED1FC',
-                padding: '0.75rem',
-                fontSize: '1rem',
-                boxSizing: 'border-box'
-              }}
+              className="form-input"
             />
           </div>
 
-          <div>
-            <label style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: 600,
-              color: '#4A3A2F'
-            }}>
+          <div className="form-group">
+            <label className="form-label">
               Type *
             </label>
             <select
@@ -200,27 +137,15 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
               value={form.type}
               onChange={handleChange}
               required
-              style={{
-                width: '100%',
-                borderRadius: '12px',
-                border: '2px solid #8ED1FC',
-                padding: '0.75rem',
-                fontSize: '1rem',
-                boxSizing: 'border-box'
-              }}
+              className="form-select"
             >
               <option value="pill">Pill</option>
               <option value="liquid">Liquid</option>
             </select>
           </div>
 
-          <div>
-            <label style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: 600,
-              color: '#4A3A2F'
-            }}>
+          <div className="form-group">
+            <label className="form-label">
               Amount per Dose *
             </label>
             {form.type === 'pill' ? (
@@ -232,14 +157,7 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
                 onChange={handleChange}
                 min={1}
                 required
-                style={{
-                  width: '100%',
-                  borderRadius: '12px',
-                  border: '2px solid #8ED1FC',
-                  padding: '0.75rem',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box'
-                }}
+                className="form-input"
               />
             ) : (
               <input
@@ -250,25 +168,13 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
                 onChange={handleChange}
                 min={1}
                 required
-                style={{
-                  width: '100%',
-                  borderRadius: '12px',
-                  border: '2px solid #8ED1FC',
-                  padding: '0.75rem',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box'
-                }}
+                className="form-input"
               />
             )}
           </div>
 
-          <div>
-            <label style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: 600,
-              color: '#4A3A2F'
-            }}>
+          <div className="form-group">
+            <label className="form-label">
               Start Date *
             </label>
             <input
@@ -277,24 +183,12 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
               value={form.startDate}
               onChange={handleChange}
               required
-              style={{
-                width: '100%',
-                borderRadius: '12px',
-                border: '2px solid #8ED1FC',
-                padding: '0.75rem',
-                fontSize: '1rem',
-                boxSizing: 'border-box'
-              }}
+              className="form-input"
             />
           </div>
 
-          <div>
-            <label style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: 600,
-              color: '#4A3A2F'
-            }}>
+          <div className="form-group">
+            <label className="form-label">
               End Date (Optional)
             </label>
             <input
@@ -302,25 +196,13 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
               name="endDate"
               value={form.endDate}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                borderRadius: '12px',
-                border: '2px solid #8ED1FC',
-                padding: '0.75rem',
-                fontSize: '1rem',
-                boxSizing: 'border-box'
-              }}
+              className="form-input"
             />
           </div>
 
           {form.dependencyType !== 'absolute' && (
-            <div>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.5rem',
-                fontWeight: 600,
-                color: '#4A3A2F'
-              }}>
+            <div className="form-group">
+              <label className="form-label">
                 Frequency per Day *
               </label>
               <select
@@ -328,14 +210,7 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
                 value={form.frequencyPerDay}
                 onChange={handleChange}
                 required
-                style={{
-                  width: '100%',
-                  borderRadius: '12px',
-                  border: '2px solid #8ED1FC',
-                  padding: '0.75rem',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box'
-                }}
+                className="form-select"
               >
                 <option value="">Select frequency</option>
                 <option value="1">1 time per day</option>
@@ -350,13 +225,8 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
 
           {/* Duration removed: derived from start and end dates */}
 
-          <div>
-            <label style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: 600,
-              color: '#4A3A2F'
-            }}>
+          <div className="form-group">
+            <label className="form-label">
               Timing Dependency *
             </label>
             <select
@@ -364,14 +234,7 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
               value={form.dependencyType}
               onChange={handleChange}
               required
-              style={{
-                width: '100%',
-                borderRadius: '12px',
-                border: '2px solid #8ED1FC',
-                padding: '0.75rem',
-                fontSize: '1rem',
-                boxSizing: 'border-box'
-              }}
+              className="form-select"
             >
               <option value="independent">Independent (no dependency)</option>
               <option value="absolute">Absolute time</option>
@@ -382,13 +245,8 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
 
           {/* Absolute Time Dependency */}
           {form.dependencyType === 'absolute' && (
-            <div>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.5rem',
-                fontWeight: 600,
-                color: '#4A3A2F'
-              }}>
+            <div className="form-group">
+              <label className="form-label">
                 Time of Day * (Local Time)
               </label>
               <input
@@ -397,22 +255,10 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
                 value={form.absoluteTime}
                 onChange={handleChange}
                 required
-                style={{
-                  width: '100%',
-                  borderRadius: '12px',
-                  border: '2px solid #8ED1FC',
-                  padding: '0.75rem',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box'
-                }}
+                className="form-input"
               />
               {form.absoluteTime && (
-                <div style={{
-                  marginTop: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: '#666',
-                  fontStyle: 'italic'
-                }}>
+                <div className="timezone-hint">
                   Will be stored as: {formatTimeWithTimezone(convertLocalTimeToUTC(form.absoluteTime), true)}
                 </div>
               )}
@@ -422,13 +268,8 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
           {/* Meal Dependency */}
           {form.dependencyType === 'meal' && (
             <>
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontWeight: 600,
-                  color: '#4A3A2F'
-                }}>
+              <div className="form-group">
+                <label className="form-label">
                   Meal Schedule *
                 </label>
                 <select
@@ -436,14 +277,7 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
                   value={form.mealScheduleId}
                   onChange={handleChange}
                   required
-                  style={{
-                    width: '100%',
-                    borderRadius: '12px',
-                    border: '2px solid #8ED1FC',
-                    padding: '0.75rem',
-                    fontSize: '1rem',
-                    boxSizing: 'border-box'
-                  }}
+                  className="form-select"
                 >
                   <option value="">Select meal</option>
                   {mealSchedules.map(meal => (
@@ -453,13 +287,8 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
                   ))}
                 </select>
               </div>
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontWeight: 600,
-                  color: '#4A3A2F'
-                }}>
+              <div className="form-group">
+                <label className="form-label">
                   Timing *
                 </label>
                 <select
@@ -467,26 +296,14 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
                   value={form.mealTiming}
                   onChange={handleChange}
                   required
-                  style={{
-                    width: '100%',
-                    borderRadius: '12px',
-                    border: '2px solid #8ED1FC',
-                    padding: '0.75rem',
-                    fontSize: '1rem',
-                    boxSizing: 'border-box'
-                  }}
+                  className="form-select"
                 >
                   <option value="before">Before meal</option>
                   <option value="after">After meal</option>
                 </select>
               </div>
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontWeight: 600,
-                  color: '#4A3A2F'
-                }}>
+              <div className="form-group">
+                <label className="form-label">
                   Offset (minutes) *
                 </label>
                 <input
@@ -497,14 +314,7 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
                   onChange={handleChange}
                   required
                   min={0}
-                  style={{
-                    width: '100%',
-                    borderRadius: '12px',
-                    border: '2px solid #8ED1FC',
-                    padding: '0.75rem',
-                    fontSize: '1rem',
-                    boxSizing: 'border-box'
-                  }}
+                  className="form-input"
                 />
               </div>
             </>
@@ -513,13 +323,8 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
           {/* Drug Dependency */}
           {form.dependencyType === 'drug' && (
             <>
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontWeight: 600,
-                  color: '#4A3A2F'
-                }}>
+              <div className="form-group">
+                <label className="form-label">
                   Depends on Drug *
                 </label>
                 <select
@@ -527,14 +332,7 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
                   value={form.dependsOnDrugId}
                   onChange={handleChange}
                   required
-                  style={{
-                    width: '100%',
-                    borderRadius: '12px',
-                    border: '2px solid #8ED1FC',
-                    padding: '0.75rem',
-                    fontSize: '1rem',
-                    boxSizing: 'border-box'
-                  }}
+                  className="form-select"
                 >
                   <option value="">Select drug</option>
                   {existingDrugs.map(drug => (
@@ -544,13 +342,8 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
                   ))}
                 </select>
               </div>
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontWeight: 600,
-                  color: '#4A3A2F'
-                }}>
+              <div className="form-group">
+                <label className="form-label">
                   Offset (minutes) *
                 </label>
                 <input
@@ -560,57 +353,24 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
                   value={form.drugOffsetMinutes}
                   onChange={handleChange}
                   required
-                  style={{
-                    width: '100%',
-                    borderRadius: '12px',
-                    border: '2px solid #8ED1FC',
-                    padding: '0.75rem',
-                    fontSize: '1rem',
-                    boxSizing: 'border-box'
-                  }}
+                  className="form-input"
                 />
               </div>
             </>
           )}
 
-          <div style={{
-            display: 'flex',
-            gap: '1rem',
-            marginTop: '1rem'
-          }}>
+          <div className="drug-form-actions">
             <button
               type="button"
               onClick={onCancel}
-              style={{
-                flex: 1,
-                background: 'transparent',
-                color: '#4A3A2F',
-                border: '2px solid #8ED1FC',
-                borderRadius: '12px',
-                padding: '0.75rem',
-                fontWeight: 700,
-                fontSize: '1rem',
-                cursor: 'pointer'
-              }}
+              className="drug-form-button cancel-button"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              style={{
-                flex: 1,
-                background: '#F6A96B',
-                color: '#4A3A2F',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '0.75rem',
-                fontWeight: 700,
-                fontSize: '1rem',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1,
-                boxShadow: '0 2px 8px #f6a96b33'
-              }}
+              className="drug-form-button submit-button"
             >
               {loading ? (editingDrug ? 'Updating...' : 'Adding...') : (editingDrug ? 'Update Drug' : 'Add Drug')}
             </button>

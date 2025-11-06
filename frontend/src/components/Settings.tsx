@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, MealScheduleDto, MealScheduleUpdate } from '../api';
+import Icon from './Icon';
+import './Settings.css';
 
 const Settings: React.FC = () => {
   const [mealSchedules, setMealSchedules] = useState<MealScheduleDto[]>([]);
@@ -111,17 +113,14 @@ const Settings: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ padding: '2rem' }}>
-        <h2 style={{
-          color: '#4A3A2F',
-          fontWeight: 700,
-          fontSize: '1.8rem',
-          marginBottom: '2rem'
-        }}>
+      <div className="settings-container">
+        <h2 className="settings-title">
           Settings
         </h2>
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
+        <div className="settings-loading">
+          <div className="settings-loading-icon">
+            <Icon name="hourglass" size={32} />
+          </div>
           <p>Loading meal schedules...</p>
         </div>
       </div>
@@ -129,96 +128,44 @@ const Settings: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h2 style={{
-        color: '#4A3A2F',
-        fontWeight: 700,
-        fontSize: '1.8rem',
-        marginBottom: '2rem'
-      }}>
+    <div className="settings-container">
+      <h2 className="settings-title">
         Settings
       </h2>
 
       {error && (
-        <div style={{
-          background: '#fee',
-          color: '#c33',
-          padding: '1rem',
-          borderRadius: '8px',
-          marginBottom: '1rem',
-          border: '1px solid #fcc'
-        }}>
+        <div className="settings-error">
           {error}
         </div>
       )}
 
-      <div style={{
-        background: '#fff',
-        borderRadius: '16px',
-        boxShadow: '0 2px 8px #8ed1fc22',
-        border: '1px solid #f0f0f0',
-        padding: '2rem'
-      }}>
-        <h3 style={{
-          color: '#4A3A2F',
-          fontSize: '1.4rem',
-          marginBottom: '1.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          🍽️ Meal Schedule
+      <div className="settings-card">
+        <h3 className="settings-card-title">
+          <Icon name="meal" size={24} />
+          Meal Schedule
         </h3>
 
-        <p style={{
-          color: '#666',
-          marginBottom: '1.5rem',
-          fontSize: '0.9rem'
-        }}>
+        <p className="settings-card-description">
           Set your preferred meal times for breakfast, lunch, and dinner.
         </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="meal-list">
           {mealSchedules.map((meal) => (
-            <div key={meal.id} style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '1rem',
-              background: '#f8f9fa',
-              borderRadius: '8px',
-              border: '1px solid #e9ecef'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  background: '#28a745',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '1.2rem'
-                }}>
+            <div key={meal.id} className="meal-item">
+              <div className="meal-item-left">
+                <div className="meal-icon-circle">
                   {meal.meal_name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div style={{
-                    fontWeight: '600',
-                    color: '#4A3A2F',
-                    textTransform: 'capitalize',
-                    fontSize: '1.1rem'
-                  }}>
+                  <div className="meal-name">
                     {meal.meal_name}
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="meal-item-right">
                 {editingMeal === meal.meal_name ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div className="meal-edit-group">
                     <input
                       type="time"
                       value={editStates[meal.meal_name]?.time || meal.base_time}
@@ -229,66 +176,33 @@ const Settings: React.FC = () => {
                           time: e.target.value
                         }
                       })}
-                      style={{
-                        padding: '0.5rem',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem'
-                      }}
+                      className="meal-time-input"
                     />
                     <button
                       onClick={() => handleSave(meal.meal_name)}
-                      style={{
-                        background: '#28a745',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem'
-                      }}
+                      className="meal-button save-button"
                     >
                       Save
                     </button>
                     <button
                       onClick={handleCancel}
-                      style={{
-                        background: '#6c757d',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem'
-                      }}
+                      className="meal-button cancel-button"
                     >
                       Cancel
                     </button>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{
-                      fontSize: '1.2rem',
-                      fontWeight: '600',
-                      color: '#4A3A2F'
-                    }}>
+                  <>
+                    <div className="meal-time">
                       {formatTime(meal.base_time)}
                     </div>
                     <button
                       onClick={() => handleEdit(meal)}
-                      style={{
-                        background: '#007bff',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem'
-                      }}
+                      className="meal-button edit-button"
                     >
                       Edit
                     </button>
-                  </div>
+                  </>
                 )}
               </div>
             </div>

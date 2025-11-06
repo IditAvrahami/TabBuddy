@@ -1,0 +1,128 @@
+.reminder-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.reminder-modal-container {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  font-family: Nunito, Quicksand, sans-serif;
+}
+
+.reminder-modal-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.reminder-modal-title {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+  font-size: 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.reminder-modal-time {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.reminder-modal-drug-info {
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.reminder-modal-drug-name {
+  margin-bottom: 8px;
+  color: #2c3e50;
+}
+
+.reminder-modal-drug-details {
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.reminder-modal-snooze-group {
+  margin-bottom: 20px;
+}
+
+.reminder-modal-snooze-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #2c3e50;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.reminder-modal-snooze-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+}
+
+.reminder-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.reminder-modal-button {
+  padding: 10px 20px;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.reminder-modal-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.snooze-button {
+  background-color: #3498db;
+}
+
+.snooze-button:hover:not(:disabled) {
+  background-color: #2980b9;
+}
+
+.snooze-button:disabled {
+  background-color: #95a5a6;
+}
+
+.dismiss-button {
+  background-color: #e74c3c;
+}
+
+.dismiss-button:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+.dismiss-button:disabled {
+  background-color: #95a5a6;
+}

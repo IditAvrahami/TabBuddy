@@ -1,0 +1,207 @@
+.drug-list-container {
+  padding: 2rem;
+}
+
+.drug-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.drug-list-title {
+  color: #4A3A2F;
+  font-weight: 700;
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.add-drug-button {
+  background: #F6A96B;
+  color: #4A3A2F;
+  border: none;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 12px #f6a96b33;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.add-drug-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px #f6a96b44;
+}
+
+.error-message {
+  color: #b00020;
+  background: #ffebee;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid #ffcdd2;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 2rem;
+  color: #4A3A2F;
+  font-size: 1.1rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #4A3A2F;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px #8ed1fc22;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state-title {
+  margin: 0 0 0.5rem 0;
+  color: #4A3A2F;
+}
+
+.empty-state-text {
+  margin: 0;
+  color: #666;
+}
+
+.drug-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.drug-item {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px #8ed1fc22;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  border: 1px solid #f0f0f0;
+}
+
+.drug-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px #8ed1fc33;
+}
+
+.drug-icon {
+  display: inline-block;
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  margin-right: 20px;
+  border: 3px solid #8ED1FC;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.drug-icon.pill {
+  background: linear-gradient(180deg, #8ED1FC 50%, #F6A96B 50%);
+}
+
+.drug-icon.liquid {
+  background: linear-gradient(180deg, #F6A96B 50%, #8ED1FC 50%);
+}
+
+.drug-icon-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #4A3A2F;
+  border-radius: 50%;
+}
+
+.drug-icon-dot-left {
+  left: 12px;
+  top: 12px;
+}
+
+.drug-icon-dot-right {
+  right: 12px;
+  top: 12px;
+}
+
+.drug-icon-line {
+  position: absolute;
+  left: 15px;
+  top: 24px;
+  width: 18px;
+  height: 6px;
+  border-radius: 3px;
+  background: #4A3A2F;
+}
+
+.drug-info {
+  flex: 1;
+}
+
+.drug-name {
+  font-weight: 700;
+  color: #4A3A2F;
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.drug-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+  color: #4A3A2F;
+  font-size: 0.95rem;
+}
+
+.drug-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.action-button {
+  background: transparent;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.edit-button {
+  color: #4A3A2F;
+  border: 2px solid #8ED1FC;
+}
+
+.edit-button:hover {
+  background: #8ED1FC;
+  transform: scale(1.05);
+}
+
+.delete-button {
+  color: #FF6B6B;
+  border: 2px solid #FF6B6B;
+}
+
+.delete-button:hover {
+  background: #FF6B6B;
+  color: white;
+  transform: scale(1.05);
+}

@@ -1,0 +1,123 @@
+.drug-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.drug-form-container {
+  background: #FFFCF6;
+  border-radius: 24px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.drug-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.drug-form-title {
+  color: #4A3A2F;
+  font-weight: 700;
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.drug-form-close-button {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: #4A3A2F;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drug-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #4A3A2F;
+}
+
+.form-input {
+  width: 100%;
+  border-radius: 12px;
+  border: 2px solid #8ED1FC;
+  padding: 0.75rem;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.form-select {
+  width: 100%;
+  border-radius: 12px;
+  border: 2px solid #8ED1FC;
+  padding: 0.75rem;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.timezone-hint {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+}
+
+.drug-form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.drug-form-button {
+  flex: 1;
+  border-radius: 12px;
+  padding: 0.75rem;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.cancel-button {
+  background: transparent;
+  color: #4A3A2F;
+  border: 2px solid #8ED1FC;
+}
+
+.submit-button {
+  background: #F6A96B;
+  color: #4A3A2F;
+  border: none;
+  box-shadow: 0 2px 8px #f6a96b33;
+}
+
+.submit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}

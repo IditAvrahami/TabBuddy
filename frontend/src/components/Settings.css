@@ -1,0 +1,142 @@
+.settings-container {
+  padding: 2rem;
+}
+
+.settings-title {
+  color: #4A3A2F;
+  font-weight: 700;
+  font-size: 1.8rem;
+  margin-bottom: 2rem;
+}
+
+.settings-loading {
+  text-align: center;
+  padding: 2rem;
+}
+
+.settings-loading-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.settings-error {
+  background: #fee;
+  color: #c33;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid #fcc;
+}
+
+.settings-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px #8ed1fc22;
+  border: 1px solid #f0f0f0;
+  padding: 2rem;
+}
+
+.settings-card-title {
+  color: #4A3A2F;
+  font-size: 1.4rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settings-card-description {
+  color: #666;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.meal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.meal-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.meal-item-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.meal-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #28a745;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.meal-name {
+  font-weight: 600;
+  color: #4A3A2F;
+  text-transform: capitalize;
+  font-size: 1.1rem;
+}
+
+.meal-item-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.meal-time {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #4A3A2F;
+}
+
+.meal-edit-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.meal-time-input {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.meal-button {
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.save-button {
+  background: #28a745;
+  color: white;
+}
+
+.cancel-button {
+  background: #6c757d;
+  color: white;
+}
+
+.edit-button {
+  background: #007bff;
+  color: white;
+}

@@ -191,15 +191,7 @@ function App() {
   };
 
   return (
-    <div className="App" style={{
-      maxWidth: 800,
-      margin: '2rem auto',
-      fontFamily: 'Nunito, Quicksand, sans-serif',
-      background: '#FFFCF6',
-      borderRadius: 24,
-      boxShadow: '0 4px 24px #f6a96b22',
-      overflow: 'hidden'
-    }}>
+    <div className="App">
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
 
       {activeTab === 'drugs' ? (
