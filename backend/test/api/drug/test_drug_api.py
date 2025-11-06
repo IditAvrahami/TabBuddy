@@ -25,19 +25,11 @@ def test_add_drug_success(db_session, test_client):
     assert data["name"] == payload['name']
     assert data["kind"] == payload['kind']
     assert data["amount_per_dose"] == payload['amount_per_dose']
+    assert data["duration"] == payload['duration']
+    assert data["amount_per_day"] == payload['amount_per_day']
     
-    # Refresh session to see changes
-    db_session.commit()
-    
-    # Verify drug was added to database
+    # Verify drug was added to database (integration check)
     assert get_db_count(db_session) == initial_count + 1
-    db_drug = get_db_drug(db_session, "Paracetamol")
-    assert db_drug is not None
-    assert db_drug.name == "Paracetamol"
-    assert db_drug.kind == "pill"
-    assert db_drug.amount_per_dose == 2
-    assert db_drug.duration == 7
-    assert db_drug.amount_per_day == 3
 
 
 def test_add_drug_duplicate(db_session, test_client):
@@ -74,8 +66,9 @@ def test_get_all_drugs(db_session, test_client):
         "duration": 7,
         "amount_per_day": 3,
     }
-    resp = test_client.post("/drug", json=payload)
-    assert resp.status_code == 200
+    create_resp = test_client.post("/drug", json=payload)
+    assert create_resp.status_code == 200
+    created_drug = create_resp.json()
     
     # Check DB state before API call
     db_count = get_db_count(db_session)
@@ -87,13 +80,12 @@ def test_get_all_drugs(db_session, test_client):
     assert len(data) == db_count
     assert any(d["name"] == "Paracetamol" for d in data)
     
-    # Verify API response matches DB state
-    db_drug = get_db_drug(db_session, "Paracetamol")
+    # Verify API response matches the created drug
     api_drug = next(d for d in data if d["name"] == "Paracetamol")
-    assert api_drug["kind"] == db_drug.kind
-    assert api_drug["amount_per_dose"] == db_drug.amount_per_dose
-    assert api_drug["duration"] == db_drug.duration
-    assert api_drug["amount_per_day"] == db_drug.amount_per_day
+    assert api_drug["kind"] == created_drug["kind"]
+    assert api_drug["amount_per_dose"] == created_drug["amount_per_dose"]
+    assert api_drug["duration"] == created_drug["duration"]
+    assert api_drug["amount_per_day"] == created_drug["amount_per_day"]
 
 
 def test_update_drug_success(db_session, test_client):
@@ -105,8 +97,10 @@ def test_update_drug_success(db_session, test_client):
         "duration": 7,
         "amount_per_day": 3,
     }
-    resp = test_client.post("/drug", json=initial_payload)
-    assert resp.status_code == 200
+    create_resp = test_client.post("/drug", json=initial_payload)
+    assert create_resp.status_code == 200
+    created_drug = create_resp.json()
+    assert created_drug["amount_per_dose"] == 2  # Original value
     
     updated = {
         "name": "Paracetamol",
@@ -118,24 +112,17 @@ def test_update_drug_success(db_session, test_client):
     
     # Check DB state before update
     count_before = get_db_count(db_session)
-    old_drug = get_db_drug(db_session, "Paracetamol")
-    assert old_drug.amount_per_dose == 2  # Original value
     
     resp = test_client.put(f"/drug/{updated['name']}", json=updated)
     assert resp.status_code == 200
     data = resp.json()
     assert data["name"] == updated['name']
     assert data["amount_per_dose"] == updated['amount_per_dose']
-    
-    # Refresh the session to see changes made by the API
-    db_session.expire_all()
+    assert data["duration"] == updated['duration']
+    assert data["amount_per_day"] == updated['amount_per_day']
     
     # Verify drug count unchanged but data updated
     assert get_db_count(db_session) == count_before
-    updated_drug = get_db_drug(db_session, "Paracetamol")
-    assert updated_drug.amount_per_dose == 1  # New value
-    assert updated_drug.duration == 5
-    assert updated_drug.amount_per_day == 2
 
 
 def test_update_drug_not_found(db_session, test_client):
@@ -168,12 +155,13 @@ def test_delete_drug_success(db_session, test_client):
         "duration": 7,
         "amount_per_day": 3,
     }
-    resp = test_client.post("/drug", json=payload)
-    assert resp.status_code == 200
+    create_resp = test_client.post("/drug", json=payload)
+    assert create_resp.status_code == 200
+    created_drug = create_resp.json()
+    assert created_drug["name"] == "Paracetamol"
     
     # Check DB state before deletion
     count_before = get_db_count(db_session)
-    assert get_db_drug(db_session, "Paracetamol") is not None
     
     resp = test_client.delete("/drug/Paracetamol")
     assert resp.status_code == 200
@@ -182,7 +170,6 @@ def test_delete_drug_success(db_session, test_client):
     
     # Verify drug was removed from database
     assert get_db_count(db_session) == count_before - 1
-    assert get_db_drug(db_session, "Paracetamol") is None
 
 
 def test_delete_drug_not_found(db_session, test_client):

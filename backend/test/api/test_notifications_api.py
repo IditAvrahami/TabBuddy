@@ -55,10 +55,7 @@ def test_notifications_snooze(test_client: TestClient):
     payload = create_absolute_payload("SnoozeDrug", current_time, today, today)
     r = test_client.post("/drug", json=payload)
     assert r.status_code == 200
-
-    # fetch id
-    list_resp = test_client.get("/drug").json()
-    schedule = next(d for d in list_resp if d["name"] == "SnoozeDrug")
+    schedule = r.json()
     sid = schedule["id"]
 
     # Check notification appears initially
@@ -89,10 +86,7 @@ def test_notifications_dismiss(test_client: TestClient):
     payload = create_absolute_payload("DismissDrug", current_time, today, today)
     r = test_client.post("/drug", json=payload)
     assert r.status_code == 200
-
-    # fetch id
-    list_resp = test_client.get("/drug").json()
-    schedule = next(d for d in list_resp if d["name"] == "DismissDrug")
+    schedule = r.json()
     sid = schedule["id"]
 
     # Check notification appears initially
@@ -123,10 +117,7 @@ def test_notifications_snooze_reappears_after_time(test_client: TestClient):
     payload = create_absolute_payload("SnoozeReappearDrug", current_time, today, today)
     r = test_client.post("/drug", json=payload)
     assert r.status_code == 200
-
-    # fetch id
-    list_resp = test_client.get("/drug").json()
-    schedule = next(d for d in list_resp if d["name"] == "SnoozeReappearDrug")
+    schedule = r.json()
     sid = schedule["id"]
 
     # Check notification appears initially (it's due now)
@@ -163,10 +154,7 @@ def test_notifications_snooze_multiple_reappearances(test_client: TestClient):
     payload = create_absolute_payload("MultiSnoozeDrug", current_time, today, today)
     r = test_client.post("/drug", json=payload)
     assert r.status_code == 200
-
-    # fetch id
-    list_resp = test_client.get("/drug").json()
-    schedule = next(d for d in list_resp if d["name"] == "MultiSnoozeDrug")
+    schedule = r.json()
     sid = schedule["id"]
 
     # Check notification appears initially
@@ -222,11 +210,8 @@ def test_notifications_none_after_delete(test_client: TestClient):
     r = test_client.post("/drug", json=payload)
     assert r.status_code == 200
 
-    # fetch created schedules and delete the schedule id returned by list API
-    list_resp = test_client.get("/drug")
-    assert list_resp.status_code == 200
-    found = next(d for d in list_resp.json() if d["name"] == "ToDelete")
-    schedule_id = found["id"]
+    # Use the returned object from POST to get the schedule id
+    schedule_id = r.json()["id"]
 
     del_resp = test_client.delete(f"/drug/{schedule_id}")
     assert del_resp.status_code == 200
@@ -248,10 +233,7 @@ def test_notifications_snooze_multiple_times(test_client: TestClient):
     payload = create_absolute_payload("MultiSnoozeDrug", current_time, today, today)
     r = test_client.post("/drug", json=payload)
     assert r.status_code == 200
-
-    # fetch id
-    list_resp = test_client.get("/drug").json()
-    schedule = next(d for d in list_resp if d["name"] == "MultiSnoozeDrug")
+    schedule = r.json()
     sid = schedule["id"]
 
     # Check notification appears initially
@@ -290,10 +272,7 @@ def test_notifications_snooze_then_dismiss(test_client: TestClient):
     payload = create_absolute_payload("SnoozeThenDismissDrug", current_time, today, today)
     r = test_client.post("/drug", json=payload)
     assert r.status_code == 200
-
-    # fetch id
-    list_resp = test_client.get("/drug").json()
-    schedule = next(d for d in list_resp if d["name"] == "SnoozeThenDismissDrug")
+    schedule = r.json()
     sid = schedule["id"]
 
     # Check notification appears initially
@@ -332,10 +311,7 @@ def test_notifications_dismiss_then_snooze(test_client: TestClient):
     payload = create_absolute_payload("DismissThenSnoozeDrug", current_time, today, today)
     r = test_client.post("/drug", json=payload)
     assert r.status_code == 200
-
-    # fetch id
-    list_resp = test_client.get("/drug").json()
-    schedule = next(d for d in list_resp if d["name"] == "DismissThenSnoozeDrug")
+    schedule = r.json()
     sid = schedule["id"]
 
     # Check notification appears initially
@@ -374,10 +350,7 @@ def test_notifications_update_time_clears_snooze_and_reappears(test_client: Test
     payload = create_absolute_payload("UpdateTimeDrug", original_time, today, today)
     r = test_client.post("/drug", json=payload)
     assert r.status_code == 200
-
-    # Get the schedule ID
-    list_resp = test_client.get("/drug").json()
-    schedule = next(d for d in list_resp if d["name"] == "UpdateTimeDrug")
+    schedule = r.json()
     sid = schedule["id"]
 
     # Step 1: Verify notification appears initially
