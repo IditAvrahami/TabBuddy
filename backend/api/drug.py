@@ -93,7 +93,7 @@ def schedule_to_response(schedule: DrugSchedule) -> DrugResponse:
             created_at=schedule.created_at or datetime.now(UTC),
     )
 
-@router.post("/drug", response_model=DrugResponse)
+@router.post("/drug")
 def add_drug(drug: DrugCreateCompat, db: Session = Depends(get_db)) -> DrugResponse:
     logger.info("POST /drug payload=%s", drug.model_dump())
     
@@ -155,7 +155,7 @@ def add_drug(drug: DrugCreateCompat, db: Session = Depends(get_db)) -> DrugRespo
     logger.info("POST /drug success name=%s", drug.name)
     return schedule_to_response(schedule)
 
-@router.get("/drug", response_model=list[DrugResponse])
+@router.get("/drug")
 def get_all_drugs(db: Session = Depends(get_db)) -> list[DrugResponse]:
     logger.info("GET /drug")
     schedules = db.query(DrugSchedule).filter(DrugSchedule.is_active == True).all()
@@ -175,7 +175,7 @@ def get_all_drugs(db: Session = Depends(get_db)) -> list[DrugResponse]:
     logger.info("GET /drug count=%d", len(items))
     return items
 
-@router.put("/drug-id/{drug_id}", response_model=DrugResponse)
+@router.put("/drug-id/{drug_id}")
 def update_drug(drug_id: int, drug: DrugCreateCompat, db: Session = Depends(get_db)) -> DrugResponse:
     logger.info("PUT /drug/%d payload=%s", drug_id, drug.model_dump())
     
@@ -243,7 +243,7 @@ def update_drug(drug_id: int, drug: DrugCreateCompat, db: Session = Depends(get_
     logger.info("PUT /drug/%d success name=%s", drug_id, drug.name)
     return schedule_to_response(schedule)
 
-@router.delete("/drug-id/{drug_id}", response_model=DrugResponse)
+@router.delete("/drug-id/{drug_id}")
 def delete_drug(drug_id: int, db: Session = Depends(get_db)) -> DrugResponse:
     logger.info("DELETE /drug/%d", drug_id)
     
@@ -265,7 +265,7 @@ def delete_drug(drug_id: int, db: Session = Depends(get_db)) -> DrugResponse:
     return response
 
 # Compatibility endpoints using name instead of id
-@router.put("/drug/{name}", response_model=DrugResponse)
+@router.put("/drug/{name}")
 def update_drug_by_name(name: str, drug: DrugCreateCompat, db: Session = Depends(get_db)) -> DrugResponse:
     logger.info("PUT /drug/%s payload=%s", name, drug.model_dump())
     schedule = db.query(DrugSchedule).join(DrugSchedule.drug).filter(DrugSchedule.is_active == True, DrugORM.name == name).first()
@@ -273,7 +273,7 @@ def update_drug_by_name(name: str, drug: DrugCreateCompat, db: Session = Depends
         raise HTTPException(status_code=404, detail="Drug not found")
     return update_drug(schedule.id, drug, db)
 
-@router.delete("/drug/{name}", response_model=DrugResponse)
+@router.delete("/drug/{name}")
 def delete_drug_by_name(name: str, db: Session = Depends(get_db)) -> DrugResponse:
     logger.info("DELETE /drug/%s", name)
     schedule = db.query(DrugSchedule).join(DrugSchedule.drug).filter(DrugORM.name == name).first()
@@ -290,7 +290,7 @@ def delete_drug_by_name(name: str, db: Session = Depends(get_db)) -> DrugRespons
     return delete_drug(schedule.id, db)
 
 # ID-based deletion kept for compatibility with tests calling /drug/{id}
-@router.delete("/drug/{schedule_id}", response_model=DrugResponse)
+@router.delete("/drug/{schedule_id}")
 def delete_drug_by_id_compat(schedule_id: int, db: Session = Depends(get_db)) -> DrugResponse:
     logger.info("DELETE /drug/%d", schedule_id)
     schedule = db.query(DrugSchedule).filter(DrugSchedule.id == schedule_id).first()

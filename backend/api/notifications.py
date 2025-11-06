@@ -33,7 +33,7 @@ class DismissResponse(BaseModel):
     dismissed: bool = True
 
 
-@router.get("/notifications", response_model=list[NotificationDto])
+@router.get("/notifications")
 def get_notifications(db: Session = Depends(get_db)) -> list[NotificationDto]:
     """Return notifications that are ready to show now.
     
@@ -81,7 +81,7 @@ def schedule_to_notification_dto(schedule: DrugSchedule, scheduled_time: datetim
     )
 
 
-@router.post("/notifications/{schedule_id}/snooze", response_model=SnoozeResponse)
+@router.post("/notifications/{schedule_id}/snooze")
 def snooze_notification(schedule_id: int, payload: SnoozeRequest, db: Session = Depends(get_db)) -> SnoozeResponse:
     logger.info("POST /notifications/%d/snooze - minutes=%d", schedule_id, payload.minutes)
     
@@ -151,7 +151,7 @@ def snooze_notification(schedule_id: int, payload: SnoozeRequest, db: Session = 
     )
 
 
-@router.post("/notifications/{schedule_id}/dismiss", response_model=DismissResponse)
+@router.post("/notifications/{schedule_id}/dismiss")
 def dismiss_notification(schedule_id: int, db: Session = Depends(get_db)) -> DismissResponse:
     schedule = db.query(DrugSchedule).filter(DrugSchedule.id == schedule_id, DrugSchedule.is_active == True).first()
     if not schedule:

@@ -31,7 +31,7 @@ def meal_schedule_to_dto(meal: MealSchedule) -> MealScheduleDto:
         created_at=meal.created_at.isoformat()
     )
 
-@router.get("/meal-schedules", response_model=list[MealScheduleDto])
+@router.get("/meal-schedules")
 def get_meal_schedules(db: Session = Depends(get_db)) -> list[MealScheduleDto]:
     logger.info("GET /meal-schedules")
     rows = db.query(MealSchedule).all()
@@ -39,7 +39,7 @@ def get_meal_schedules(db: Session = Depends(get_db)) -> list[MealScheduleDto]:
     logger.info("GET /meal-schedules count=%d", len(items))
     return items
 
-@router.post("/meal-schedules", response_model=MealScheduleDto)
+@router.post("/meal-schedules")
 def create_meal_schedule(meal: MealScheduleCreate, db: Session = Depends(get_db)) -> MealScheduleDto:
     logger.info("POST /meal-schedules payload=%s", meal.model_dump())
     
@@ -65,7 +65,7 @@ def create_meal_schedule(meal: MealScheduleCreate, db: Session = Depends(get_db)
     logger.info("POST /meal-schedules success meal_name=%s", meal.meal_name)
     return meal_schedule_to_dto(row)
 
-@router.put("/meal-schedules/{meal_name}", response_model=MealScheduleDto)
+@router.put("/meal-schedules/{meal_name}")
 def update_meal_schedule(meal_name: str, meal: MealScheduleUpdate, db: Session = Depends(get_db)) -> MealScheduleDto:
     logger.info("PUT /meal-schedules/%s payload=%s", meal_name, meal.model_dump())
     
@@ -86,7 +86,7 @@ def update_meal_schedule(meal_name: str, meal: MealScheduleUpdate, db: Session =
     logger.info("PUT /meal-schedules/%s success", meal_name)
     return meal_schedule_to_dto(row)
 
-@router.delete("/meal-schedules/{meal_name}", response_model=MealScheduleDto)
+@router.delete("/meal-schedules/{meal_name}")
 def delete_meal_schedule(meal_name: str, db: Session = Depends(get_db)) -> MealScheduleDto:
     logger.info("DELETE /meal-schedules/%s", meal_name)
     
