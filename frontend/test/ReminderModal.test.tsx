@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ReminderModal from './ReminderModal';
-import { NotificationDto } from '../api';
+import ReminderModal from '../src/components/ReminderModal';
+import { NotificationDto } from '../src/api';
 
 const mockNotification: NotificationDto = {
   schedule_id: 1,
@@ -124,3 +124,4 @@ describe('ReminderModal', () => {
     expect(screen.queryByText('💊 Time to take your medication')).not.toBeInTheDocument();
   });
 });
+

@@ -71,6 +71,7 @@ if __name__ == "__main__":
         stop_test_db()
     else:
         if start_test_db():
-            print("\nTo stop the test database, run: python start_test_db.py stop")
+            print("\nTo stop the test database, run: python tools/start_test_db.py stop")
         else:
             sys.exit(1)
+

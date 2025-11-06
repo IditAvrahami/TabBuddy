@@ -7,7 +7,12 @@ This will start the test database if it's not running and then connect with pgcl
 import subprocess
 import sys
 import os
-from start_test_db import start_test_db, stop_test_db
+from pathlib import Path
+
+# Add parent directory to path so we can import from tools
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from tools.start_test_db import start_test_db, stop_test_db
 
 def connect_to_test_db():
     """Connect to test database using pgcli"""
@@ -52,3 +57,4 @@ def connect_to_test_db():
 
 if __name__ == "__main__":
     connect_to_test_db()
+

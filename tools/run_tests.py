@@ -6,7 +6,12 @@ Script to run tests with automatic test database setup.
 import subprocess
 import sys
 import os
-from start_test_db import start_test_db, stop_test_db
+from pathlib import Path
+
+# Add parent directory to path so we can import from tools
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from tools.start_test_db import start_test_db, stop_test_db
 
 def run_tests():
     """Run tests with test database"""
@@ -39,3 +44,4 @@ if __name__ == "__main__":
     else:
         print("❌ Some tests failed!")
         sys.exit(1)
+

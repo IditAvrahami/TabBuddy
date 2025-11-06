@@ -19,19 +19,19 @@
 
 ### Option 1: Automated (Recommended)
 ```powershell
-python run_tests.py
+python tools/run_tests.py
 ```
 
 ### Option 2: Manual
 ```powershell
 # Start test database
-python start_test_db.py
+python tools/start_test_db.py
 
 # Run tests
 pytest -v backend/test/api/drug/test_drug_api.py
 
 # Stop test database
-python start_test_db.py stop
+python tools/start_test_db.py stop
 ```
 
 ### Option 3: Quick Test (if test DB already running)
