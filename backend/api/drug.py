@@ -60,12 +60,6 @@ class DrugResponse(BaseModel):
     def serialize_time(self, value: time | None) -> str | None:
         return value.isoformat() if value else None
 
-class MealScheduleResponse(BaseModel):
-    id: int
-    meal_name: str
-    base_time: time
-    is_active: bool
-
 def schedule_to_response(schedule: DrugSchedule) -> DrugResponse:
     """Helper function to convert a DrugSchedule to DrugResponse"""
     return DrugResponse(
