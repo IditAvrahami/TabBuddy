@@ -4,6 +4,7 @@ from sqlalchemy.orm import object_session
 from sqlalchemy.sql import func
 from .database import Base
 from datetime import datetime, time, timedelta, date as date_type, UTC
+from pydantic import BaseModel
 import enum
 import logging
 
@@ -121,12 +122,24 @@ class NotificationOverride(Base):
 
     schedule = relationship("DrugSchedule", back_populates="notification_overrides")
 
+
+class TimelineItem(BaseModel):
+    """Pydantic model for timeline items returned by TimelineCalculator"""
+    schedule_id: int
+    drug_id: int
+    drug_name: str
+    scheduled_time: datetime
+    dependency_type: str
+    amount_per_dose: int
+    kind: str
+
+
 # Timeline calculation service
 class TimelineCalculator:
     def __init__(self, db_session: Session) -> None:
         self.db: Session = db_session
     
-    def calculate_daily_timeline(self, date: date_type) -> list[dict[str, int | str | datetime]]:
+    def calculate_daily_timeline(self, date: date_type) -> list[TimelineItem]:
         """Calculate timeline for a specific date, returning only notifications ready to show now"""
         
         # Get all active drug schedules for the date
@@ -163,25 +176,25 @@ class TimelineCalculator:
             
             # Show notifications that are due now 
             if -60 <= time_diff <= 5 :
-                timeline.append({
-                    'schedule_id': schedule.id,
-                    'drug_id': schedule.drug_id,
-                    'drug_name': schedule.drug.name,
-                    'scheduled_time': calculated_time,
-                    'dependency_type': schedule.dependency_type.value,
-                    'amount_per_dose': schedule.drug.amount_per_dose,
-                    'kind': schedule.drug.kind
-                })
+                timeline.append(TimelineItem(
+                    schedule_id=schedule.id,
+                    drug_id=schedule.drug_id,
+                    drug_name=schedule.drug.name,
+                    scheduled_time=calculated_time,
+                    dependency_type=schedule.dependency_type.value,
+                    amount_per_dose=schedule.drug.amount_per_dose,
+                    kind=schedule.drug.kind
+                ))
         
         # Sort by time
-        timeline.sort(key=lambda x: x['scheduled_time'])
+        timeline.sort(key=lambda x: x.scheduled_time)
         
         # Ensure each drug appears only once (deduplicate by drug_id)
         seen_drugs = set()
         unique_timeline = []
         for item in timeline:
-            if item['drug_id'] not in seen_drugs:
-                seen_drugs.add(item['drug_id'])
+            if item.drug_id not in seen_drugs:
+                seen_drugs.add(item.drug_id)
                 unique_timeline.append(item)
         
         return unique_timeline

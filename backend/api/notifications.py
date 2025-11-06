@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.models import DrugSchedule, DependencyType, NotificationOverride, TimelineCalculator
+from backend.models import DrugSchedule, DependencyType, NotificationOverride, TimelineCalculator, TimelineItem
 
 
 logger = logging.getLogger(__name__)
@@ -50,13 +50,13 @@ def get_notifications(db: Session = Depends(get_db)) -> list[NotificationDto]:
     notifications = []
     for item in timeline:
         notifications.append(NotificationDto(
-            schedule_id=item['schedule_id'],
-            drug_id=item['drug_id'],
-            drug_name=item['drug_name'],
-            kind=item['kind'],
-            amount_per_dose=item['amount_per_dose'],
-            dependency_type=item['dependency_type'],
-            scheduled_time=item['scheduled_time'].isoformat(),
+            schedule_id=item.schedule_id,
+            drug_id=item.drug_id,
+            drug_name=item.drug_name,
+            kind=item.kind,
+            amount_per_dose=item.amount_per_dose,
+            dependency_type=item.dependency_type,
+            scheduled_time=item.scheduled_time.isoformat(),
         ))
 
     logger.info("GET /notifications count=%d", len(notifications))
@@ -171,7 +171,6 @@ def dismiss_notification(schedule_id: int, db: Session = Depends(get_db)) -> Dis
         scheduled_time = existing_override.snoozed_until
     else:
         # Calculate using TimelineCalculator's logic
-        from backend.models import TimelineCalculator
         calculator = TimelineCalculator(db)
         scheduled_time = calculator._calculate_drug_time(schedule, today, {})
     
