@@ -21,7 +21,10 @@ def test_add_drug_success(db_session, test_client):
     
     resp = test_client.post("/drug", json=payload)
     assert resp.status_code == 200
-    assert resp.json()["message"] == f"Added {payload['name']}"
+    data = resp.json()
+    assert data["name"] == payload['name']
+    assert data["kind"] == payload['kind']
+    assert data["amount_per_dose"] == payload['amount_per_dose']
     
     # Refresh session to see changes
     db_session.commit()
@@ -120,7 +123,9 @@ def test_update_drug_success(db_session, test_client):
     
     resp = test_client.put(f"/drug/{updated['name']}", json=updated)
     assert resp.status_code == 200
-    assert resp.json()["message"] == f"Updated {updated['name']}"
+    data = resp.json()
+    assert data["name"] == updated['name']
+    assert data["amount_per_dose"] == updated['amount_per_dose']
     
     # Refresh the session to see changes made by the API
     db_session.expire_all()
@@ -172,7 +177,8 @@ def test_delete_drug_success(db_session, test_client):
     
     resp = test_client.delete("/drug/Paracetamol")
     assert resp.status_code == 200
-    assert resp.json()["message"] == "Deleted Paracetamol"
+    data = resp.json()
+    assert data["name"] == "Paracetamol"
     
     # Verify drug was removed from database
     assert get_db_count(db_session) == count_before - 1

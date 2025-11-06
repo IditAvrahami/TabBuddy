@@ -16,7 +16,10 @@ def test_add_drug(test_client):
     
     resp = test_client.post("/drug", json=payload)
     assert resp.status_code == 200
-    assert resp.json()["message"] == "Added Aspirin"
+    data = resp.json()
+    assert data["name"] == "Aspirin"
+    assert data["kind"] == "pill"
+    assert data["amount_per_dose"] == 1
 
 def test_get_drugs(test_client):
     """Simple test to get all drugs"""
@@ -67,7 +70,9 @@ def test_update_drug(test_client):
     }
     resp = test_client.put("/drug/Ibuprofen", json=update_payload)
     assert resp.status_code == 200
-    assert resp.json()["message"] == "Updated Ibuprofen"
+    data = resp.json()
+    assert data["name"] == "Ibuprofen"
+    assert data["amount_per_dose"] == update_payload['amount_per_dose']
 
 def test_delete_drug(test_client):
     """Test deleting a drug"""
@@ -85,7 +90,8 @@ def test_delete_drug(test_client):
     # Delete the drug
     resp = test_client.delete("/drug/VitaminC")
     assert resp.status_code == 200
-    assert resp.json()["message"] == "Deleted VitaminC"
+    data = resp.json()
+    assert data["name"] == "VitaminC"
 
 def test_delete_nonexistent_drug(test_client):
     """Test deleting a drug that doesn't exist"""

@@ -1,6 +1,5 @@
 import logging
-from typing import List, Optional
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, UTC
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -24,8 +23,18 @@ class NotificationDto(BaseModel):
     scheduled_time: str = Field(..., description="ISO timestamp for notification time")
 
 
-@router.get("/notifications", response_model=List[NotificationDto])
-def get_notifications(db: Session = Depends(get_db)):
+class SnoozeResponse(BaseModel):
+    notification: NotificationDto
+    snoozed_until: str = Field(..., description="ISO timestamp when notification will reappear")
+
+
+class DismissResponse(BaseModel):
+    notification: NotificationDto
+    dismissed: bool = True
+
+
+@router.get("/notifications", response_model=list[NotificationDto])
+def get_notifications(db: Session = Depends(get_db)) -> list[NotificationDto]:
     """Return notifications that are ready to show now.
     
     This endpoint is designed for polling - it only returns notifications
@@ -59,8 +68,21 @@ class SnoozeRequest(BaseModel):
     minutes: int = 10
 
 
-@router.post("/notifications/{schedule_id}/snooze")
-def snooze_notification(schedule_id: int, payload: SnoozeRequest, db: Session = Depends(get_db)):
+def schedule_to_notification_dto(schedule: DrugSchedule, scheduled_time: datetime) -> NotificationDto:
+    """Helper function to convert a DrugSchedule to NotificationDto"""
+    return NotificationDto(
+        schedule_id=schedule.id,
+        drug_id=schedule.drug_id,
+        drug_name=schedule.drug.name,
+        kind=schedule.drug.kind,
+        amount_per_dose=schedule.drug.amount_per_dose,
+        dependency_type=schedule.dependency_type.value,
+        scheduled_time=scheduled_time.isoformat(),
+    )
+
+
+@router.post("/notifications/{schedule_id}/snooze", response_model=SnoozeResponse)
+def snooze_notification(schedule_id: int, payload: SnoozeRequest, db: Session = Depends(get_db)) -> SnoozeResponse:
     logger.info("POST /notifications/%d/snooze - minutes=%d", schedule_id, payload.minutes)
     
     schedule = db.query(DrugSchedule).filter(DrugSchedule.id == schedule_id, DrugSchedule.is_active == True).first()
@@ -110,7 +132,7 @@ def snooze_notification(schedule_id: int, payload: SnoozeRequest, db: Session = 
         # Update existing override
         existing_override.snoozed_until = snoozed_until
         existing_override.dismissed = False
-        existing_override.created_at = datetime.utcnow()
+        existing_override.created_at = datetime.now(UTC)
         logger.info("Updated existing override in database")
     else:
         # Create new override
@@ -120,11 +142,17 @@ def snooze_notification(schedule_id: int, payload: SnoozeRequest, db: Session = 
     
     db.commit()
     logger.info("Snooze saved successfully to database: schedule_id=%d, snoozed_until=%s", schedule_id, snoozed_until.isoformat())
-    return {"message": "Snoozed", "snoozed_until": snoozed_until.isoformat()}
+    
+    # Create notification DTO with the snoozed time
+    notification = schedule_to_notification_dto(schedule, snoozed_until)
+    return SnoozeResponse(
+        notification=notification,
+        snoozed_until=snoozed_until.isoformat()
+    )
 
 
-@router.post("/notifications/{schedule_id}/dismiss")
-def dismiss_notification(schedule_id: int, db: Session = Depends(get_db)):
+@router.post("/notifications/{schedule_id}/dismiss", response_model=DismissResponse)
+def dismiss_notification(schedule_id: int, db: Session = Depends(get_db)) -> DismissResponse:
     schedule = db.query(DrugSchedule).filter(DrugSchedule.id == schedule_id, DrugSchedule.is_active == True).first()
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
@@ -136,17 +164,31 @@ def dismiss_notification(schedule_id: int, db: Session = Depends(get_db)):
         NotificationOverride.override_date == today
     ).first()
     
+    # Calculate the scheduled time for the notification
+    # If there's a snoozed_until, use that (it was the time shown)
+    # Otherwise, calculate from the schedule
+    if existing_override and existing_override.snoozed_until:
+        scheduled_time = existing_override.snoozed_until
+    else:
+        # Calculate using TimelineCalculator's logic
+        from backend.models import TimelineCalculator
+        calculator = TimelineCalculator(db)
+        scheduled_time = calculator._calculate_drug_time(schedule, today, {})
+    
     if existing_override:
         # Update existing override to dismissed
         existing_override.dismissed = True
         existing_override.snoozed_until = None
-        existing_override.created_at = datetime.utcnow()
+        existing_override.created_at = datetime.now(UTC)
     else:
         # Create new dismissed override
         ov = NotificationOverride(schedule_id=schedule.id, override_date=today, dismissed=True)
         db.add(ov)
     
     db.commit()
-    return {"message": "Dismissed"}
+    
+    # Create notification DTO
+    notification = schedule_to_notification_dto(schedule, scheduled_time)
+    return DismissResponse(notification=notification)
 
 

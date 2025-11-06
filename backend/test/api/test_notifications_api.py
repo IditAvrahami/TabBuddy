@@ -68,6 +68,10 @@ def test_notifications_snooze(test_client: TestClient):
     # snooze 30 minutes
     snooze = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 30})
     assert snooze.status_code == 200
+    snooze_data = snooze.json()
+    assert "notification" in snooze_data
+    assert "snoozed_until" in snooze_data
+    assert snooze_data["notification"]["drug_name"] == "SnoozeDrug"
 
     # After snoozing, notification should disappear (it's now 30 minutes in the future)
     notif_after_snooze = test_client.get("/notifications").json()
@@ -98,6 +102,10 @@ def test_notifications_dismiss(test_client: TestClient):
     # dismiss notification
     dismiss = test_client.post(f"/notifications/{sid}/dismiss")
     assert dismiss.status_code == 200
+    dismiss_data = dismiss.json()
+    assert "notification" in dismiss_data
+    assert dismiss_data["dismissed"] is True
+    assert dismiss_data["notification"]["drug_name"] == "DismissDrug"
 
     # now notifications should be empty (dismissed)
     notif_after_dismiss = test_client.get("/notifications").json()
@@ -128,6 +136,9 @@ def test_notifications_snooze_reappears_after_time(test_client: TestClient):
     # snooze for 10 minutes
     snooze = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 10})
     assert snooze.status_code == 200
+    snooze_data = snooze.json()
+    assert "notification" in snooze_data
+    assert "snoozed_until" in snooze_data
 
     # After snoozing, notification should disappear (it's now 10 minutes in the future)
     notif_after_snooze = test_client.get("/notifications").json()
@@ -165,6 +176,8 @@ def test_notifications_snooze_multiple_reappearances(test_client: TestClient):
     # First snooze for 10 minutes (20:00 + 10 = 20:10)
     snooze1 = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 10})
     assert snooze1.status_code == 200
+    assert "notification" in snooze1.json()
+    assert "snoozed_until" in snooze1.json()
     notif_after_snooze1 = test_client.get("/notifications").json()
     assert len(notif_after_snooze1) == 0
 
@@ -176,6 +189,8 @@ def test_notifications_snooze_multiple_reappearances(test_client: TestClient):
         # Snooze again for 20 minutes (should now be 20:10 + 20 = 20:30)
         snooze2 = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 20})
         assert snooze2.status_code == 200
+        assert "notification" in snooze2.json()
+        assert "snoozed_until" in snooze2.json()
         notif_after_snooze2 = test_client.get("/notifications").json()
         assert len(notif_after_snooze2) == 0
 
@@ -246,6 +261,8 @@ def test_notifications_snooze_multiple_times(test_client: TestClient):
     # First snooze: 15 minutes
     snooze1 = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 15})
     assert snooze1.status_code == 200
+    assert "notification" in snooze1.json()
+    assert "snoozed_until" in snooze1.json()
 
     # After first snooze, notification should disappear
     notif1 = test_client.get("/notifications").json()
@@ -254,6 +271,8 @@ def test_notifications_snooze_multiple_times(test_client: TestClient):
     # Second snooze: 30 minutes (should update the snooze time)
     snooze2 = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 30})
     assert snooze2.status_code == 200
+    assert "notification" in snooze2.json()
+    assert "snoozed_until" in snooze2.json()
 
     # After second snooze, notification should still be gone
     notif2 = test_client.get("/notifications").json()
@@ -284,6 +303,8 @@ def test_notifications_snooze_then_dismiss(test_client: TestClient):
     # Snooze first
     snooze = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 45})
     assert snooze.status_code == 200
+    assert "notification" in snooze.json()
+    assert "snoozed_until" in snooze.json()
 
     # After snoozing, notification should disappear
     notif_after_snooze = test_client.get("/notifications").json()
@@ -292,6 +313,8 @@ def test_notifications_snooze_then_dismiss(test_client: TestClient):
     # Then dismiss
     dismiss = test_client.post(f"/notifications/{sid}/dismiss")
     assert dismiss.status_code == 200
+    assert "notification" in dismiss.json()
+    assert dismiss.json()["dismissed"] is True
 
     # Verify dismiss worked (should still be empty)
     notif2 = test_client.get("/notifications").json()
@@ -322,6 +345,8 @@ def test_notifications_dismiss_then_snooze(test_client: TestClient):
     # Dismiss first
     dismiss = test_client.post(f"/notifications/{sid}/dismiss")
     assert dismiss.status_code == 200
+    assert "notification" in dismiss.json()
+    assert dismiss.json()["dismissed"] is True
 
     # Verify dismiss worked
     notif1 = test_client.get("/notifications").json()
@@ -330,6 +355,8 @@ def test_notifications_dismiss_then_snooze(test_client: TestClient):
     # Then snooze (should override the dismiss)
     snooze = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 20})
     assert snooze.status_code == 200
+    assert "notification" in snooze.json()
+    assert "snoozed_until" in snooze.json()
 
     # After snoozing, notification should still be gone (it's 20 minutes in the future)
     notif2 = test_client.get("/notifications").json()
@@ -362,15 +389,18 @@ def test_notifications_update_time_clears_snooze_and_reappears(test_client: Test
     # Step 2: Snooze the notification for 30 minutes
     snooze = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 30})
     assert snooze.status_code == 200
+    assert "notification" in snooze.json()
+    assert "snoozed_until" in snooze.json()
 
     # Step 3: Verify notification disappears after snooze
     notif_after_snooze = test_client.get("/notifications").json()
     assert len(notif_after_snooze) == 0, "Notification should disappear after snooze"
 
-    # Step 4: Update the drug's absolute_time to a new time (20:00:03 - 3 seconds from now)
-    # We use a time very close to now so it appears in the notification window (-60 to +5 seconds)
-    new_time_dt = now + timedelta(seconds=3)  # 3 seconds in the future
-    new_time = new_time_dt.strftime("%H:%M:%S")[:5]  # Get HH:MM format
+    # Step 4: Update the drug's absolute_time to a new time (20:01 - 1 minute from now)
+    # We use a time 1 minute in the future so it's different from the original and appears in the notification window
+    # The notification window is -60 to +5 seconds, so 1 minute in the future is within range
+    new_time_dt = now + timedelta(minutes=1)  # 1 minute in the future (20:01)
+    new_time = new_time_dt.strftime("%H:%M")  # Get HH:MM format
     update_payload = {
         "name": "UpdateTimeDrug",
         "kind": "pill",
@@ -383,33 +413,43 @@ def test_notifications_update_time_clears_snooze_and_reappears(test_client: Test
     }
     update_resp = test_client.put(f"/drug-id/{sid}", json=update_payload)
     assert update_resp.status_code == 200
+    # Verify the update returned the drug object
+    update_data = update_resp.json()
+    assert update_data["name"] == "UpdateTimeDrug"
+    # absolute_time is returned as ISO format (HH:MM:SS), compare just HH:MM part
+    assert update_data["absolute_time"].startswith(new_time) or update_data["absolute_time"] == new_time
 
-    # Step 5: Verify notification reappears with the NEW time
-    # The new time is 3 seconds in the future, which is within the 5-second window
-    notif_after_update = test_client.get("/notifications").json()
-    assert len(notif_after_update) == 1, "Notification should reappear after updating time (override was cleared)"
-    assert notif_after_update[0]["drug_name"] == "UpdateTimeDrug"
-    # Verify it uses the new time (should be 20:00:03 or close to it)
-    scheduled_time_str = notif_after_update[0]["scheduled_time"]
-    assert new_time in scheduled_time_str or scheduled_time_str.endswith(f"{new_time}:00"), \
-        f"Notification should use new time {new_time}, got {scheduled_time_str}"
+    # Step 5: Fast forward to when the new time is due (20:01:00)
+    # The notification window is -60 to +5 seconds, so at 20:01:00, a notification for 20:01:00 should appear
+    with freeze_time("2025-10-26 20:01:00"):
+        notif_after_update = test_client.get("/notifications").json()
+        assert len(notif_after_update) == 1, "Notification should reappear after updating time (override was cleared)"
+        assert notif_after_update[0]["drug_name"] == "UpdateTimeDrug"
+        # Verify it uses the new time (should be 20:01:00)
+        scheduled_time_str = notif_after_update[0]["scheduled_time"]
+        assert "20:01" in scheduled_time_str, \
+            f"Notification should use new time {new_time}, got {scheduled_time_str}"
 
     # Step 6: Verify that snoozing again uses the NEW time, not the old one
-    # Snooze for 10 minutes - should now be based on the new time (20:00:03), so it becomes 20:10:03
-    snooze2 = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 10})
-    assert snooze2.status_code == 200
+    # Fast forward back to 20:01:00 to snooze
+    with freeze_time("2025-10-26 20:01:00"):
+        # Snooze for 10 minutes - should now be based on the new time (20:01:00), so it becomes 20:11:00
+        snooze2 = test_client.post(f"/notifications/{sid}/snooze", json={"minutes": 10})
+        assert snooze2.status_code == 200
+        assert "notification" in snooze2.json()
+        assert "snoozed_until" in snooze2.json()
 
-    # Notification should disappear (it's now 20:10:03, but we're still at 20:00:00)
-    notif_after_second_snooze = test_client.get("/notifications").json()
-    assert len(notif_after_second_snooze) == 0, "Notification should disappear after second snooze"
+        # Notification should disappear (it's now 20:11:00, but we're at 20:01:00)
+        notif_after_second_snooze = test_client.get("/notifications").json()
+        assert len(notif_after_second_snooze) == 0, "Notification should disappear after second snooze"
 
-    # Fast forward to 20:10:03 (when the snooze expires) - notification should reappear
-    with freeze_time("2025-10-26 20:10:03"):
+    # Fast forward to 20:11:00 (when the snooze expires) - notification should reappear
+    with freeze_time("2025-10-26 20:11:00"):
         notif_after_snooze_expires = test_client.get("/notifications").json()
         assert len(notif_after_snooze_expires) == 1, "Notification should reappear after snooze expires"
         assert notif_after_snooze_expires[0]["drug_name"] == "UpdateTimeDrug"
-        # The scheduled_time should be based on the new time (20:00:03) + 10 minutes snooze = 20:10:03
-        assert "20:10" in notif_after_snooze_expires[0]["scheduled_time"], \
+        # The scheduled_time should be based on the new time (20:01:00) + 10 minutes snooze = 20:11:00
+        assert "20:11" in notif_after_snooze_expires[0]["scheduled_time"], \
             "Notification time should reflect the new base time plus snooze"
 
 
