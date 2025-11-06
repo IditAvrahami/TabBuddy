@@ -22,15 +22,15 @@ const Settings: React.FC = () => {
     try {
       setLoading(true);
       const schedules = await api.getMealSchedules();
-      
+
       // Sort meals in order: breakfast, lunch, dinner
       const sortedSchedules = schedules.sort((a, b) => {
         const order = ['breakfast', 'lunch', 'dinner'];
         return order.indexOf(a.meal_name) - order.indexOf(b.meal_name);
       });
-      
+
       setMealSchedules(sortedSchedules);
-      
+
       // If no meal schedules exist, create default ones
       if (schedules.length === 0) {
         await createDefaultMeals();
@@ -49,13 +49,13 @@ const Settings: React.FC = () => {
       }
       // Reload after creating defaults and apply sorting
       const schedules = await api.getMealSchedules();
-      
+
       // Sort meals in order: breakfast, lunch, dinner
       const sortedSchedules = schedules.sort((a, b) => {
         const order = ['breakfast', 'lunch', 'dinner'];
         return order.indexOf(a.meal_name) - order.indexOf(b.meal_name);
       });
-      
+
       setMealSchedules(sortedSchedules);
     } catch (err) {
       console.error('Failed to create default meals:', err);
@@ -76,7 +76,7 @@ const Settings: React.FC = () => {
     try {
       const editState = editStates[mealName];
       if (!editState) return;
-      
+
       await api.updateMealSchedule(mealName, {
         base_time: editState.time
       });
@@ -112,11 +112,11 @@ const Settings: React.FC = () => {
   if (loading) {
     return (
       <div style={{ padding: '2rem' }}>
-        <h2 style={{ 
-          color: '#4A3A2F', 
-          fontWeight: 700, 
+        <h2 style={{
+          color: '#4A3A2F',
+          fontWeight: 700,
           fontSize: '1.8rem',
-          marginBottom: '2rem' 
+          marginBottom: '2rem'
         }}>
           Settings
         </h2>
@@ -130,11 +130,11 @@ const Settings: React.FC = () => {
 
   return (
     <div style={{ padding: '2rem' }}>
-      <h2 style={{ 
-        color: '#4A3A2F', 
-        fontWeight: 700, 
+      <h2 style={{
+        color: '#4A3A2F',
+        fontWeight: 700,
         fontSize: '1.8rem',
-        marginBottom: '2rem' 
+        marginBottom: '2rem'
       }}>
         Settings
       </h2>
@@ -159,8 +159,8 @@ const Settings: React.FC = () => {
         border: '1px solid #f0f0f0',
         padding: '2rem'
       }}>
-        <h3 style={{ 
-          color: '#4A3A2F', 
+        <h3 style={{
+          color: '#4A3A2F',
           fontSize: '1.4rem',
           marginBottom: '1.5rem',
           display: 'flex',
@@ -169,9 +169,9 @@ const Settings: React.FC = () => {
         }}>
           🍽️ Meal Schedule
         </h3>
-        
-        <p style={{ 
-          color: '#666', 
+
+        <p style={{
+          color: '#666',
           marginBottom: '1.5rem',
           fontSize: '0.9rem'
         }}>
@@ -205,8 +205,8 @@ const Settings: React.FC = () => {
                   {meal.meal_name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ 
-                    fontWeight: '600', 
+                  <div style={{
+                    fontWeight: '600',
                     color: '#4A3A2F',
                     textTransform: 'capitalize',
                     fontSize: '1.1rem'
@@ -267,8 +267,8 @@ const Settings: React.FC = () => {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ 
-                      fontSize: '1.2rem', 
+                    <div style={{
+                      fontSize: '1.2rem',
                       fontWeight: '600',
                       color: '#4A3A2F'
                     }}>

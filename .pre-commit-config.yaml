@@ -1,0 +1,90 @@
+repos:
+  # Python hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: debug-statements
+
+  # Black - Python code formatter
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        language_version: python3
+        files: ^backend/
+
+  # Ruff - Fast Python linter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  # MyPy - Python type checker
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        files: ^backend/
+        additional_dependencies: [
+            sqlalchemy>=2.0.0,
+            pydantic>=2.0.0,
+            fastapi>=0.100.0,
+            types-python-dateutil,
+            psycopg2-binary,
+            alembic,
+            freezegun,
+            pytest>=7.0.0,
+          ]
+        args: [--config-file=pyproject.toml]
+
+  # Pytest - Python tests
+  - repo: local
+    hooks:
+      - id: pytest-backend
+        name: pytest-backend
+        entry: python tools/run_tests.py
+        language: system
+        pass_filenames: false
+        always_run: false
+        files: ^backend/.*\.py$
+
+  # ESLint - JavaScript/TypeScript linter
+  - repo: local
+    hooks:
+      - id: eslint-frontend
+        name: eslint-frontend
+        entry: cmd /c "cd frontend && npm run lint:fix"
+        language: system
+        files: ^frontend/src/.*\.(js|jsx|ts|tsx)$
+        pass_filenames: false
+
+  # TypeScript type checking
+  - repo: local
+    hooks:
+      - id: typescript-check
+        name: typescript-check
+        entry: cmd /c "cd frontend && npm run type-check"
+        language: system
+        files: ^frontend/src/.*\.(ts|tsx)$
+        pass_filenames: false
+
+  # Jest - Frontend tests
+  - repo: local
+    hooks:
+      - id: jest-frontend
+        name: jest-frontend
+        entry: cmd /c "cd frontend && npm run test:ci"
+        language: system
+        files: ^frontend/src/.*\.(js|jsx|ts|tsx)$
+        pass_filenames: false

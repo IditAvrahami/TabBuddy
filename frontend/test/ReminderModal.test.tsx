@@ -124,4 +124,3 @@ describe('ReminderModal', () => {
     expect(screen.queryByText('💊 Time to take your medication')).not.toBeInTheDocument();
   });
 });
-

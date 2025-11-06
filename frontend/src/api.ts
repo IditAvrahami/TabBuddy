@@ -100,13 +100,13 @@ export const api = {
 	listDrugs: () => http<DrugDto[]>('/drug'),
 	updateDrug: (drugId: number, drug: DrugCreateDto) => http<{ message: string }>(`/drug-id/${drugId}`, { method: 'PUT', body: JSON.stringify(drug) }),
 	deleteDrug: (drugId: number) => http<{ message: string }>(`/drug-id/${drugId}`, { method: 'DELETE' }),
-	
+
 	// Meal schedule endpoints
 	getMealSchedules: () => http<MealScheduleDto[]>('/meal-schedules'),
 	createMealSchedule: (meal: MealScheduleCreate) => http<{ message: string }>('/meal-schedules', { method: 'POST', body: JSON.stringify(meal) }),
 	updateMealSchedule: (mealName: string, meal: MealScheduleUpdate) => http<{ message: string }>(`/meal-schedules/${encodeURIComponent(mealName)}`, { method: 'PUT', body: JSON.stringify(meal) }),
 	deleteMealSchedule: (mealName: string) => http<{ message: string }>(`/meal-schedules/${encodeURIComponent(mealName)}`, { method: 'DELETE' }),
-	
+
 	// Notification endpoints
 	getNotifications: (day: string = new Date().toISOString().split('T')[0]) => http<NotificationDto[]>(`/notifications?day=${day}`),
 	snoozeNotification: (scheduleId: number, minutes: number, day: string = new Date().toISOString().split('T')[0]) => {

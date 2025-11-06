@@ -8,29 +8,29 @@
     <div id="status">Checking...</div>
     <div id="notifications"></div>
     <div id="time"></div>
-    
+
     <script>
         const API_BASE = 'http://127.0.0.1:8000';
-        
+
         function updateTime() {
             document.getElementById('time').textContent = 'Current time: ' + new Date().toLocaleTimeString();
         }
-        
+
         async function checkNotifications() {
             try {
                 const today = new Date().toISOString().split('T')[0];
                 const response = await fetch(`${API_BASE}/notifications?day=${today}`);
-                
+
                 if (response.ok) {
                     const notifications = await response.json();
                     document.getElementById('status').textContent = `Found ${notifications.length} notifications`;
-                    
+
                     let html = '<h3>Notifications:</h3>';
                     notifications.forEach(notif => {
                         const scheduledTime = new Date(notif.scheduled_time);
                         const now = new Date();
                         const timeDiff = (scheduledTime - now) / (1000 * 60); // minutes
-                        
+
                         html += `<div style="border: 1px solid #ccc; margin: 5px; padding: 10px;">`;
                         html += `<strong>${notif.drug_name}</strong><br>`;
                         html += `Scheduled: ${scheduledTime.toLocaleString()}<br>`;
@@ -46,15 +46,14 @@
                 document.getElementById('status').textContent = 'Error: ' + error.message;
             }
         }
-        
+
         // Update time every second
         setInterval(updateTime, 1000);
         updateTime();
-        
+
         // Check notifications every 5 seconds
         setInterval(checkNotifications, 5000);
         checkNotifications();
     </script>
 </body>
 </html>
-

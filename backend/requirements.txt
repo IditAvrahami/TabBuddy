@@ -7,4 +7,8 @@ SQLAlchemy
 psycopg2-binary
 pgcli
 alembic
-
+pre-commit
+black
+ruff
+mypy
+sqlalchemy2-stubs

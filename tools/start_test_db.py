@@ -12,16 +12,16 @@ import sys
 def start_test_db():
     """Start PostgreSQL test database using Docker"""
     print("Starting PostgreSQL test database...")
-    
+
     # Check if container already exists
     result = subprocess.run([
         "docker", "ps", "-a", "--filter", "name=tabbuddy-test-db", "--format", "{{.Names}}"
     ], capture_output=True, text=True)
-    
+
     if "tabbuddy-test-db" in result.stdout:
         print("Removing existing test container...")
         subprocess.run(["docker", "rm", "-f", "tabbuddy-test-db"], check=False)
-    
+
     # Start PostgreSQL container
     print("Starting new PostgreSQL container...")
     subprocess.run([
@@ -33,7 +33,7 @@ def start_test_db():
         "-p", "5434:5432",
         "postgres:16"
     ], check=True)
-    
+
     # Wait for database to be ready
     print("Waiting for PostgreSQL to be ready...")
     max_retries = 30
@@ -47,16 +47,16 @@ def start_test_db():
                 database="tabbuddy_test"
             )
             conn.close()
-            print("✅ PostgreSQL test database is ready!")
+            print("PostgreSQL test database is ready!")
             print("Database URL: postgresql+psycopg2://postgres:postgres@localhost:5434/tabbuddy_test")
             return True
         except psycopg2.OperationalError as e:
             if i == max_retries - 1:
-                print(f"❌ Failed to connect to test database: {e}")
+                print(f"Failed to connect to test database: {e}")
                 return False
             print(f"Waiting... ({i+1}/{max_retries})")
             time.sleep(1)
-    
+
     return False
 
 def stop_test_db():
@@ -64,7 +64,7 @@ def stop_test_db():
     print("Stopping PostgreSQL test database...")
     subprocess.run(["docker", "stop", "tabbuddy-test-db"], check=False)
     subprocess.run(["docker", "rm", "tabbuddy-test-db"], check=False)
-    print("✅ Test database stopped and removed")
+    print("Test database stopped and removed")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "stop":
@@ -74,4 +74,3 @@ if __name__ == "__main__":
             print("\nTo stop the test database, run: python tools/start_test_db.py stop")
         else:
             sys.exit(1)
-

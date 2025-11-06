@@ -1,6 +1,8 @@
 import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from backend.api.drug import router as drug_router
 from backend.api.meal import router as meal_router
 from backend.api.notifications import router as notifications_router
@@ -9,7 +11,7 @@ from backend.database import Base, engine
 # Configure root logger
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s %(levelname)s %(name)s - %(message)s',
+    format="%(asctime)s %(levelname)s %(name)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -35,4 +37,3 @@ app.include_router(drug_router)
 app.include_router(meal_router)
 app.include_router(notifications_router)
 logger.info("TabBuddy API started successfully")
-

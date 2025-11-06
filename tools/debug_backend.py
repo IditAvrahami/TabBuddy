@@ -12,11 +12,11 @@ TODAY = date.today().isoformat()
 
 def debug_backend():
     """Debug the backend notification logic."""
-    
+
     print("🔍 Debugging backend notification logic...")
     print(f"Current time: {datetime.now().strftime('%H:%M:%S')}")
     print(f"Today's date: {TODAY}")
-    
+
     # 1. Check all drugs
     print("\n1. Checking all drugs...")
     try:
@@ -32,11 +32,11 @@ def debug_backend():
             print(f"❌ Failed to get drugs: {response.status_code}")
     except Exception as e:
         print(f"❌ Error getting drugs: {e}")
-    
+
     # 2. Check notifications with different time windows
     print("\n2. Testing notification time windows...")
     now = datetime.now()
-    
+
     # Test with a drug scheduled for right now
     test_time = now.strftime("%H:%M")
     drug_payload = {
@@ -49,7 +49,7 @@ def debug_backend():
         "dependency_type": "absolute",
         "absolute_time": test_time
     }
-    
+
     print(f"Creating test drug for: {test_time}")
     try:
         response = requests.post(f"{API_BASE}/drug", json=drug_payload)
@@ -59,7 +59,7 @@ def debug_backend():
             print(f"❌ Failed to create test drug: {response.text}")
     except Exception as e:
         print(f"❌ Error creating test drug: {e}")
-    
+
     # 3. Check notifications again
     print("\n3. Checking notifications after creating test drug...")
     try:
@@ -74,7 +74,7 @@ def debug_backend():
             print(f"Response: {response.text}")
     except Exception as e:
         print(f"❌ Error getting notifications: {e}")
-    
+
     # 4. Test with a drug scheduled 1 minute ago (should definitely show)
     print("\n4. Creating drug for 1 minute ago...")
     past_time = (now.replace(second=0, microsecond=0) - datetime.timedelta(minutes=1)).strftime("%H:%M")
@@ -88,7 +88,7 @@ def debug_backend():
         "dependency_type": "absolute",
         "absolute_time": past_time
     }
-    
+
     print(f"Creating drug for: {past_time} (1 minute ago)")
     try:
         response = requests.post(f"{API_BASE}/drug", json=drug_payload2)
@@ -98,7 +98,7 @@ def debug_backend():
             print(f"❌ Failed to create past test drug: {response.text}")
     except Exception as e:
         print(f"❌ Error creating past test drug: {e}")
-    
+
     # 5. Check notifications again
     print("\n5. Final notification check...")
     try:
@@ -115,4 +115,3 @@ def debug_backend():
 
 if __name__ == "__main__":
     debug_backend()
-

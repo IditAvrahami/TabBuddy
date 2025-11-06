@@ -4,17 +4,17 @@
     <title>Test Notification Modal</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
-        .modal { 
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
-            background: rgba(0,0,0,0.5); display: flex; 
+        .modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); display: flex;
             align-items: center; justify-content: center; z-index: 1000;
         }
-        .modal-content { 
-            background: white; padding: 24px; border-radius: 12px; 
+        .modal-content {
+            background: white; padding: 24px; border-radius: 12px;
             max-width: 400px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
         }
-        button { 
-            padding: 10px 20px; margin: 5px; border: none; 
+        button {
+            padding: 10px 20px; margin: 5px; border: none;
             border-radius: 6px; cursor: pointer; font-weight: 500;
         }
         .snooze { background: #3498db; color: white; }
@@ -56,38 +56,38 @@
 
     <script>
         const API_BASE = 'http://127.0.0.1:8000';
-        
+
         function testModal() {
             document.getElementById('modal').style.display = 'flex';
             document.getElementById('status').textContent = 'Modal should be visible now!';
         }
-        
+
         function snooze() {
             const minutes = document.getElementById('snoozeTime').value;
             document.getElementById('status').textContent = `Snoozed for ${minutes} minutes`;
             document.getElementById('modal').style.display = 'none';
         }
-        
+
         function dismiss() {
             document.getElementById('status').textContent = 'Dismissed notification';
             document.getElementById('modal').style.display = 'none';
         }
-        
+
         async function testAPI() {
             try {
                 const today = new Date().toISOString().split('T')[0];
                 const response = await fetch(`${API_BASE}/notifications?day=${today}`);
-                
+
                 if (response.ok) {
                     const notifications = await response.json();
                     document.getElementById('status').textContent = `API working! Found ${notifications.length} notifications`;
-                    
+
                     let html = '<h3>Notifications:</h3>';
                     notifications.forEach(notif => {
                         const scheduledTime = new Date(notif.scheduled_time);
                         const now = new Date();
                         const timeDiff = (scheduledTime - now) / (1000 * 60);
-                        
+
                         html += `<div style="border: 1px solid #ccc; margin: 5px; padding: 10px;">`;
                         html += `<strong>${notif.drug_name}</strong><br>`;
                         html += `Scheduled: ${scheduledTime.toLocaleString()}<br>`;
@@ -103,10 +103,9 @@
                 document.getElementById('status').textContent = `Error: ${error.message}`;
             }
         }
-        
+
         // Test API on load
         testAPI();
     </script>
 </body>
 </html>
-
