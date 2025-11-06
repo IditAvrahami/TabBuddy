@@ -1,7 +1,8 @@
 import os
 import logging
+from collections.abc import Generator
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker, declarative_base, Session
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-def get_db():
+def get_db() -> Generator[Session, None, None]:
     """Dependency to get database session"""
     logger.info("Opening PostgreSQL session")
     db = SessionLocal()

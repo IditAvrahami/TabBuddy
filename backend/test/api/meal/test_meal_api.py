@@ -23,7 +23,9 @@ def test_create_all_meals(test_client):
     for meal in TEST_MEALS:
         response = test_client.post("/meal-schedules", json=meal)
         assert response.status_code == 200
-        assert f"Added {meal['meal_name']} meal schedule" in response.json()["message"]
+        data = response.json()
+        assert data["meal_name"] == meal['meal_name']
+        assert data["base_time"] == meal['base_time']
     
     # Verify all meals were created
     response = test_client.get("/meal-schedules")
@@ -76,7 +78,9 @@ def test_update_breakfast_time(test_client):
     }
     response = test_client.put("/meal-schedules/breakfast", json=update_data)
     assert response.status_code == 200
-    assert "Updated breakfast meal schedule" in response.json()["message"]
+    data = response.json()
+    assert data["meal_name"] == "breakfast"
+    assert data["base_time"] == "07:30"
     
     # Verify only breakfast was updated
     response = test_client.get("/meal-schedules")
@@ -102,7 +106,9 @@ def test_update_lunch_time(test_client):
     }
     response = test_client.put("/meal-schedules/lunch", json=update_data)
     assert response.status_code == 200
-    assert "Updated lunch meal schedule" in response.json()["message"]
+    data = response.json()
+    assert data["meal_name"] == "lunch"
+    assert data["base_time"] == "12:30"
     
     # Verify only lunch was updated
     response = test_client.get("/meal-schedules")
@@ -128,7 +134,9 @@ def test_update_dinner_time(test_client):
     }
     response = test_client.put("/meal-schedules/dinner", json=update_data)
     assert response.status_code == 200
-    assert "Updated dinner meal schedule" in response.json()["message"]
+    data = response.json()
+    assert data["meal_name"] == "dinner"
+    assert data["base_time"] == "20:30"
     
     # Verify dinner was updated correctly
     response = test_client.get("/meal-schedules")
@@ -155,7 +163,8 @@ def test_delete_breakfast_keep_others(test_client):
     # Delete only breakfast
     response = test_client.delete("/meal-schedules/breakfast")
     assert response.status_code == 200
-    assert "Deleted breakfast meal schedule" in response.json()["message"]
+    data = response.json()
+    assert data["meal_name"] == "breakfast"
     
     # Verify only breakfast was deleted
     response = test_client.get("/meal-schedules")

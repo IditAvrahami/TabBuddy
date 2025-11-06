@@ -1,7 +1,6 @@
 import logging
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
-from typing import List
 from datetime import time
 from backend.database import get_db
 from sqlalchemy.orm import Session
@@ -23,24 +22,25 @@ class MealScheduleCreate(BaseModel):
 class MealScheduleUpdate(BaseModel):
     base_time: str = Field(..., description="Base time in HH:MM format")
 
-@router.get("/meal-schedules", response_model=List[MealScheduleDto])
-def get_meal_schedules(db: Session = Depends(get_db)):
+def meal_schedule_to_dto(meal: MealSchedule) -> MealScheduleDto:
+    """Helper function to convert a MealSchedule to MealScheduleDto"""
+    return MealScheduleDto(
+        id=meal.id,
+        meal_name=meal.meal_name,
+        base_time=meal.base_time.strftime("%H:%M"),
+        created_at=meal.created_at.isoformat()
+    )
+
+@router.get("/meal-schedules")
+def get_meal_schedules(db: Session = Depends(get_db)) -> list[MealScheduleDto]:
     logger.info("GET /meal-schedules")
     rows = db.query(MealSchedule).all()
-    items = [
-        MealScheduleDto(
-            id=r.id,
-            meal_name=r.meal_name,
-            base_time=r.base_time.strftime("%H:%M"),
-            created_at=r.created_at.isoformat()
-        )
-        for r in rows
-    ]
+    items = [meal_schedule_to_dto(r) for r in rows]
     logger.info("GET /meal-schedules count=%d", len(items))
     return items
 
 @router.post("/meal-schedules")
-def create_meal_schedule(meal: MealScheduleCreate, db: Session = Depends(get_db)):
+def create_meal_schedule(meal: MealScheduleCreate, db: Session = Depends(get_db)) -> MealScheduleDto:
     logger.info("POST /meal-schedules payload=%s", meal.model_dump())
     
     # Check if meal already exists
@@ -61,11 +61,12 @@ def create_meal_schedule(meal: MealScheduleCreate, db: Session = Depends(get_db)
     )
     db.add(row)
     db.commit()
+    db.refresh(row)  # Refresh to get the latest data
     logger.info("POST /meal-schedules success meal_name=%s", meal.meal_name)
-    return {"message": f"Added {meal.meal_name} meal schedule"}
+    return meal_schedule_to_dto(row)
 
 @router.put("/meal-schedules/{meal_name}")
-def update_meal_schedule(meal_name: str, meal: MealScheduleUpdate, db: Session = Depends(get_db)):
+def update_meal_schedule(meal_name: str, meal: MealScheduleUpdate, db: Session = Depends(get_db)) -> MealScheduleDto:
     logger.info("PUT /meal-schedules/%s payload=%s", meal_name, meal.model_dump())
     
     row = db.query(MealSchedule).filter(MealSchedule.meal_name == meal_name).first()
@@ -81,11 +82,12 @@ def update_meal_schedule(meal_name: str, meal: MealScheduleUpdate, db: Session =
     
     row.base_time = time_obj
     db.commit()
+    db.refresh(row)  # Refresh to get the latest data
     logger.info("PUT /meal-schedules/%s success", meal_name)
-    return {"message": f"Updated {meal_name} meal schedule"}
+    return meal_schedule_to_dto(row)
 
 @router.delete("/meal-schedules/{meal_name}")
-def delete_meal_schedule(meal_name: str, db: Session = Depends(get_db)):
+def delete_meal_schedule(meal_name: str, db: Session = Depends(get_db)) -> MealScheduleDto:
     logger.info("DELETE /meal-schedules/%s", meal_name)
     
     row = db.query(MealSchedule).filter(MealSchedule.meal_name == meal_name).first()
@@ -93,7 +95,9 @@ def delete_meal_schedule(meal_name: str, db: Session = Depends(get_db)):
         logger.warning("DELETE /meal-schedules meal not found meal_name=%s", meal_name)
         raise HTTPException(status_code=404, detail="Meal schedule not found")
     
+    # Create response before deleting
+    response = meal_schedule_to_dto(row)
     db.delete(row)
     db.commit()
     logger.info("DELETE /meal-schedules/%s success", meal_name)
-    return {"message": f"Deleted {meal_name} meal schedule"}
+    return response

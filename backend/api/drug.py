@@ -1,8 +1,7 @@
 import logging
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
-from typing import List, Optional, Union
-from datetime import date, time, datetime, timedelta
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
+from datetime import date, time, datetime, timedelta, UTC
 from backend.database import get_db
 from sqlalchemy.orm import Session
 from backend.models import DrugORM, DrugSchedule, MealSchedule, DependencyType, NotificationOverride
@@ -20,20 +19,20 @@ class DrugCreateCompat(BaseModel):
     amount_per_dose: int = Field(..., description="Amount per dose")
 
     # New scheduling fields (preferred)
-    dependency_type: Optional[str] = Field('independent', description="absolute|meal|drug|independent")
-    frequency_per_day: Optional[int] = Field(None, description="Times per day (ignored for absolute)")
-    start_date: Optional[date] = Field(None, description="Start date")
-    end_date: Optional[date] = Field(None, description="End date (optional)")
-    absolute_time: Optional[time] = Field(None, description="Absolute time (for absolute dependency)")
-    meal_schedule_id: Optional[int] = Field(None, description="Meal schedule ID (for meal dependency)")
-    meal_offset_minutes: Optional[int] = Field(None, description="Minutes before/after meal")
-    meal_timing: Optional[str] = Field(None, description="before or after meal")
-    depends_on_drug_id: Optional[int] = Field(None, description="Drug ID to depend on (for drug dependency)")
-    drug_offset_minutes: Optional[int] = Field(None, description="Minutes after dependent drug")
+    dependency_type: str | None = Field('independent', description="absolute|meal|drug|independent")
+    frequency_per_day: int | None = Field(None, description="Times per day (ignored for absolute)")
+    start_date: date | None = Field(None, description="Start date")
+    end_date: date | None = Field(None, description="End date (optional)")
+    absolute_time: time | None = Field(None, description="Absolute time (for absolute dependency)")
+    meal_schedule_id: int | None = Field(None, description="Meal schedule ID (for meal dependency)")
+    meal_offset_minutes: int | None = Field(None, description="Minutes before/after meal")
+    meal_timing: str | None = Field(None, description="before or after meal")
+    depends_on_drug_id: int | None = Field(None, description="Drug ID to depend on (for drug dependency)")
+    drug_offset_minutes: int | None = Field(None, description="Minutes after dependent drug")
 
     # Legacy fields (for backward compatibility with tests/UI)
-    duration: Optional[int] = Field(None, description="Legacy: duration in days")
-    amount_per_day: Optional[int] = Field(None, description="Legacy: frequency per day")
+    duration: int | None = Field(None, description="Legacy: duration in days")
+    amount_per_day: int | None = Field(None, description="Legacy: frequency per day")
 
 class DrugResponse(BaseModel):
     id: int
@@ -42,32 +41,54 @@ class DrugResponse(BaseModel):
     amount_per_dose: int
     frequency_per_day: int
     start_date: date
-    end_date: Optional[date]
-    duration: Optional[int] = None
-    amount_per_day: Optional[int] = None
+    end_date: date | None
+    duration: int | None = None
+    amount_per_day: int | None = None
     dependency_type: str
-    absolute_time: Optional[time]
-    meal_schedule_id: Optional[int]
-    meal_offset_minutes: Optional[int]
-    meal_timing: Optional[str]
-    depends_on_drug_id: Optional[int]
-    drug_offset_minutes: Optional[int]
+    absolute_time: time | None
+    meal_schedule_id: int | None
+    meal_offset_minutes: int | None
+    meal_timing: str | None
+    depends_on_drug_id: int | None
+    drug_offset_minutes: int | None
     is_active: bool
-    created_at: Optional[datetime]
+    created_at: datetime | None
     
-    class Config:
-        json_encoders = {
-            time: lambda v: v.isoformat() if v else None
-        }
+    model_config = ConfigDict()
+    
+    @field_serializer('absolute_time')
+    def serialize_time(self, value: time | None) -> str | None:
+        return value.isoformat() if value else None
 
-class MealScheduleResponse(BaseModel):
-    id: int
-    meal_name: str
-    base_time: time
-    is_active: bool
+def schedule_to_response(schedule: DrugSchedule) -> DrugResponse:
+    """Helper function to convert a DrugSchedule to DrugResponse"""
+    return DrugResponse(
+        id=schedule.id,
+        name=schedule.drug.name,
+        kind=schedule.drug.kind,
+        amount_per_dose=schedule.drug.amount_per_dose,
+        frequency_per_day=schedule.frequency_per_day,
+        start_date=schedule.start_date,
+        end_date=schedule.end_date,
+        duration=(
+            (schedule.end_date - schedule.start_date).days + 1
+            if schedule.start_date and schedule.end_date
+            else None
+        ),
+        amount_per_day=schedule.frequency_per_day,
+        dependency_type=schedule.dependency_type.value,
+        absolute_time=schedule.absolute_time,
+        meal_schedule_id=schedule.meal_schedule_id,
+        meal_offset_minutes=schedule.meal_offset_minutes,
+        meal_timing=schedule.meal_timing,
+        depends_on_drug_id=schedule.depends_on_drug_id,
+        drug_offset_minutes=schedule.drug_offset_minutes,
+        is_active=schedule.is_active,
+            created_at=schedule.created_at or datetime.now(UTC),
+    )
 
 @router.post("/drug")
-def add_drug(drug: DrugCreateCompat, db: Session = Depends(get_db)):
+def add_drug(drug: DrugCreateCompat, db: Session = Depends(get_db)) -> DrugResponse:
     logger.info("POST /drug payload=%s", drug.model_dump())
     
     # Debug timezone conversion
@@ -123,12 +144,13 @@ def add_drug(drug: DrugCreateCompat, db: Session = Depends(get_db)):
     )
     db.add(schedule)
     db.commit()
+    db.refresh(schedule)  # Refresh to get the latest data
     
     logger.info("POST /drug success name=%s", drug.name)
-    return {"message": f"Added {drug.name}"}
+    return schedule_to_response(schedule)
 
-@router.get("/drug", response_model=List[DrugResponse])
-def get_all_drugs(db: Session = Depends(get_db)):
+@router.get("/drug")
+def get_all_drugs(db: Session = Depends(get_db)) -> list[DrugResponse]:
     logger.info("GET /drug")
     schedules = db.query(DrugSchedule).filter(DrugSchedule.is_active == True).all()
     
@@ -142,36 +164,13 @@ def get_all_drugs(db: Session = Depends(get_db)):
             logger.info(f"  Type: {type(schedule.absolute_time)}")
             logger.info(f"  String: {str(schedule.absolute_time)}")
         
-        items.append(DrugResponse(
-            id=schedule.id,
-            name=schedule.drug.name,
-            kind=schedule.drug.kind,
-            amount_per_dose=schedule.drug.amount_per_dose,
-            frequency_per_day=schedule.frequency_per_day,
-            start_date=schedule.start_date,
-            end_date=schedule.end_date,
-            duration=(
-                (schedule.end_date - schedule.start_date).days + 1
-                if schedule.start_date and schedule.end_date
-                else None
-            ),
-            amount_per_day=schedule.frequency_per_day,
-            dependency_type=schedule.dependency_type.value,
-            absolute_time=schedule.absolute_time,
-            meal_schedule_id=schedule.meal_schedule_id,
-            meal_offset_minutes=schedule.meal_offset_minutes,
-            meal_timing=schedule.meal_timing,
-            depends_on_drug_id=schedule.depends_on_drug_id,
-            drug_offset_minutes=schedule.drug_offset_minutes,
-            is_active=schedule.is_active,
-            created_at=schedule.created_at or datetime.utcnow(),
-        ))
+        items.append(schedule_to_response(schedule))
     
     logger.info("GET /drug count=%d", len(items))
     return items
 
 @router.put("/drug-id/{drug_id}")
-def update_drug(drug_id: int, drug: DrugCreateCompat, db: Session = Depends(get_db)):
+def update_drug(drug_id: int, drug: DrugCreateCompat, db: Session = Depends(get_db)) -> DrugResponse:
     logger.info("PUT /drug/%d payload=%s", drug_id, drug.model_dump())
     
     schedule = db.query(DrugSchedule).filter(DrugSchedule.id == drug_id).first()
@@ -234,11 +233,12 @@ def update_drug(drug_id: int, drug: DrugCreateCompat, db: Session = Depends(get_
         logger.info("Cleared %d notification override(s) for schedule %d", deleted_count, schedule.id)
     
     db.commit()
+    db.refresh(schedule)  # Refresh to get the latest data
     logger.info("PUT /drug/%d success name=%s", drug_id, drug.name)
-    return {"message": f"Updated {drug.name}"}
+    return schedule_to_response(schedule)
 
 @router.delete("/drug-id/{drug_id}")
-def delete_drug(drug_id: int, db: Session = Depends(get_db)):
+def delete_drug(drug_id: int, db: Session = Depends(get_db)) -> DrugResponse:
     logger.info("DELETE /drug/%d", drug_id)
     
     schedule = db.query(DrugSchedule).filter(DrugSchedule.id == drug_id).first()
@@ -246,19 +246,21 @@ def delete_drug(drug_id: int, db: Session = Depends(get_db)):
         logger.warning("DELETE /drug schedule not found id=%d", drug_id)
         raise HTTPException(status_code=404, detail="Drug schedule not found")
     
+    # Create response before deleting
+    response = schedule_to_response(schedule)
+    
     # Delete the schedule and its drug (for compatibility with tests expecting row removal)
-    drug_name = schedule.drug.name
     db.delete(schedule)
     # Also delete the drug row
     db.delete(schedule.drug)
     db.commit()
     
     logger.info("DELETE /drug/%d success", drug_id)
-    return {"message": f"Deleted {drug_name}"}
+    return response
 
 # Compatibility endpoints using name instead of id
 @router.put("/drug/{name}")
-def update_drug_by_name(name: str, drug: DrugCreateCompat, db: Session = Depends(get_db)):
+def update_drug_by_name(name: str, drug: DrugCreateCompat, db: Session = Depends(get_db)) -> DrugResponse:
     logger.info("PUT /drug/%s payload=%s", name, drug.model_dump())
     schedule = db.query(DrugSchedule).join(DrugSchedule.drug).filter(DrugSchedule.is_active == True, DrugORM.name == name).first()
     if not schedule:
@@ -266,7 +268,7 @@ def update_drug_by_name(name: str, drug: DrugCreateCompat, db: Session = Depends
     return update_drug(schedule.id, drug, db)
 
 @router.delete("/drug/{name}")
-def delete_drug_by_name(name: str, db: Session = Depends(get_db)):
+def delete_drug_by_name(name: str, db: Session = Depends(get_db)) -> DrugResponse:
     logger.info("DELETE /drug/%s", name)
     schedule = db.query(DrugSchedule).join(DrugSchedule.drug).filter(DrugORM.name == name).first()
     if not schedule:
@@ -283,7 +285,7 @@ def delete_drug_by_name(name: str, db: Session = Depends(get_db)):
 
 # ID-based deletion kept for compatibility with tests calling /drug/{id}
 @router.delete("/drug/{schedule_id}")
-def delete_drug_by_id_compat(schedule_id: int, db: Session = Depends(get_db)):
+def delete_drug_by_id_compat(schedule_id: int, db: Session = Depends(get_db)) -> DrugResponse:
     logger.info("DELETE /drug/%d", schedule_id)
     schedule = db.query(DrugSchedule).filter(DrugSchedule.id == schedule_id).first()
     if not schedule:
