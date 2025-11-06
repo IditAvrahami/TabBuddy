@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { api, MealScheduleDto, MealScheduleUpdate } from '../api';
+import { api, MealScheduleDto } from '../api';
+import Container from './primitives/Container';
+import Text from './primitives/Text';
+import Card from './primitives/Card';
+import LoadingState from './layout/LoadingState';
+import ErrorMessage from './layout/ErrorMessage';
+import MealItem from './MealItem';
 import Icon from './Icon';
 import './Settings.css';
 
@@ -25,7 +31,6 @@ const Settings: React.FC = () => {
       setLoading(true);
       const schedules = await api.getMealSchedules();
 
-      // Sort meals in order: breakfast, lunch, dinner
       const sortedSchedules = schedules.sort((a, b) => {
         const order = ['breakfast', 'lunch', 'dinner'];
         return order.indexOf(a.meal_name) - order.indexOf(b.meal_name);
@@ -33,7 +38,6 @@ const Settings: React.FC = () => {
 
       setMealSchedules(sortedSchedules);
 
-      // If no meal schedules exist, create default ones
       if (schedules.length === 0) {
         await createDefaultMeals();
       }
@@ -49,10 +53,8 @@ const Settings: React.FC = () => {
       for (const meal of defaultMeals) {
         await api.createMealSchedule(meal);
       }
-      // Reload after creating defaults and apply sorting
       const schedules = await api.getMealSchedules();
 
-      // Sort meals in order: breakfast, lunch, dinner
       const sortedSchedules = schedules.sort((a, b) => {
         const order = ['breakfast', 'lunch', 'dinner'];
         return order.indexOf(a.meal_name) - order.indexOf(b.meal_name);
@@ -83,7 +85,6 @@ const Settings: React.FC = () => {
         base_time: editState.time
       });
       setEditingMeal(null);
-      // Remove the edit state for this meal
       const newEditStates = { ...editStates };
       delete newEditStates[mealName];
       setEditStates(newEditStates);
@@ -95,7 +96,6 @@ const Settings: React.FC = () => {
 
   const handleCancel = () => {
     setEditingMeal(null);
-    // Remove the edit state for the currently editing meal
     if (editingMeal) {
       const newEditStates = { ...editStates };
       delete newEditStates[editingMeal];
@@ -103,113 +103,57 @@ const Settings: React.FC = () => {
     }
   };
 
-  const formatTime = (timeStr: string) => {
-    const [hours, minutes] = timeStr.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
+  const handleTimeChange = (mealName: string, time: string) => {
+    setEditStates({
+      ...editStates,
+      [mealName]: {
+        ...editStates[mealName],
+        time
+      }
+    });
   };
 
   if (loading) {
     return (
-      <div className="settings-container">
-        <h2 className="settings-title">
-          Settings
-        </h2>
-        <div className="settings-loading">
-          <div className="settings-loading-icon">
-            <Icon name="hourglass" size={32} />
-          </div>
-          <p>Loading meal schedules...</p>
-        </div>
-      </div>
+      <Container className="settings-container">
+        <Text variant="h2" className="settings-title">Settings</Text>
+        <LoadingState message="Loading meal schedules..." />
+      </Container>
     );
   }
 
   return (
-    <div className="settings-container">
-      <h2 className="settings-title">
-        Settings
-      </h2>
+    <Container className="settings-container">
+      <Text variant="h2" className="settings-title">Settings</Text>
 
-      {error && (
-        <div className="settings-error">
-          {error}
-        </div>
-      )}
+      {error && <ErrorMessage message={error} />}
 
-      <div className="settings-card">
-        <h3 className="settings-card-title">
+      <Card className="settings-card">
+        <Text variant="h3" className="settings-card-title">
           <Icon name="meal" size={24} />
           Meal Schedule
-        </h3>
+        </Text>
 
-        <p className="settings-card-description">
+        <Text variant="p" className="settings-card-description">
           Set your preferred meal times for breakfast, lunch, and dinner.
-        </p>
+        </Text>
 
-        <div className="meal-list">
+        <Container className="meal-list">
           {mealSchedules.map((meal) => (
-            <div key={meal.id} className="meal-item">
-              <div className="meal-item-left">
-                <div className="meal-icon-circle">
-                  {meal.meal_name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <div className="meal-name">
-                    {meal.meal_name}
-                  </div>
-                </div>
-              </div>
-
-              <div className="meal-item-right">
-                {editingMeal === meal.meal_name ? (
-                  <div className="meal-edit-group">
-                    <input
-                      type="time"
-                      value={editStates[meal.meal_name]?.time || meal.base_time}
-                      onChange={(e) => setEditStates({
-                        ...editStates,
-                        [meal.meal_name]: {
-                          ...editStates[meal.meal_name],
-                          time: e.target.value
-                        }
-                      })}
-                      className="meal-time-input"
-                    />
-                    <button
-                      onClick={() => handleSave(meal.meal_name)}
-                      className="meal-button save-button"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className="meal-button cancel-button"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="meal-time">
-                      {formatTime(meal.base_time)}
-                    </div>
-                    <button
-                      onClick={() => handleEdit(meal)}
-                      className="meal-button edit-button"
-                    >
-                      Edit
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+            <MealItem
+              key={meal.id}
+              meal={meal}
+              isEditing={editingMeal === meal.meal_name}
+              editTime={editStates[meal.meal_name]?.time || meal.base_time}
+              onEdit={() => handleEdit(meal)}
+              onSave={() => handleSave(meal.meal_name)}
+              onCancel={handleCancel}
+              onTimeChange={(time) => handleTimeChange(meal.meal_name, time)}
+            />
           ))}
-        </div>
-      </div>
-    </div>
+        </Container>
+      </Card>
+    </Container>
   );
 };
 

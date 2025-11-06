@@ -1,0 +1,238 @@
+/* Button Styles */
+.primitive-button {
+  border-radius: 12px;
+  padding: 0.75rem;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.primitive-button-primary {
+  background: #F6A96B;
+  color: #4A3A2F;
+  box-shadow: 0 2px 8px #f6a96b33;
+}
+
+.primitive-button-primary:hover:not(:disabled) {
+  background: #f7b77e;
+}
+
+.primitive-button-secondary {
+  background: transparent;
+  color: #4A3A2F;
+  border: 2px solid #8ED1FC;
+}
+
+.primitive-button-secondary:hover:not(:disabled) {
+  background: #8ED1FC;
+  color: #4A3A2F;
+}
+
+.primitive-button-danger {
+  background: transparent;
+  color: #FF6B6B;
+  border: 2px solid #FF6B6B;
+}
+
+.primitive-button-danger:hover:not(:disabled) {
+  background: #FF6B6B;
+  color: white;
+}
+
+.primitive-button-icon {
+  background: transparent;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.primitive-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.primitive-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Input Styles */
+.primitive-input-wrapper {
+  width: 100%;
+}
+
+.primitive-input {
+  width: 100%;
+  border-radius: 12px;
+  border: 2px solid #8ED1FC;
+  padding: 0.75rem;
+  font-size: 1rem;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.primitive-input:focus {
+  outline: none;
+  border-color: #F6A96B;
+}
+
+.primitive-input-error {
+  border-color: #FF6B6B;
+}
+
+.primitive-input-error-message {
+  display: block;
+  color: #FF6B6B;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Select Styles */
+.primitive-select-wrapper {
+  width: 100%;
+}
+
+.primitive-select {
+  width: 100%;
+  border-radius: 12px;
+  border: 2px solid #8ED1FC;
+  padding: 0.75rem;
+  font-size: 1rem;
+  box-sizing: border-box;
+  font-family: inherit;
+  background-color: white;
+}
+
+.primitive-select:focus {
+  outline: none;
+  border-color: #F6A96B;
+}
+
+.primitive-select-error {
+  border-color: #FF6B6B;
+}
+
+.primitive-select-error-message {
+  display: block;
+  color: #FF6B6B;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Card Styles */
+.primitive-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px #8ed1fc22;
+  border: 1px solid #f0f0f0;
+  padding: 2rem;
+}
+
+/* Modal Styles */
+.primitive-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.primitive-modal-container {
+  background: #FFFCF6;
+  border-radius: 24px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Container Styles */
+.primitive-container {
+  /* Base container - no default styles, use className for customization */
+}
+
+/* Text Styles */
+.primitive-text {
+  margin: 0;
+}
+
+.primitive-text-h1 {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.primitive-text-h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.primitive-text-h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.primitive-text-h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.primitive-text-h5 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.primitive-text-h6 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.primitive-text-p {
+  font-size: 1rem;
+}
+
+.primitive-text-span {
+  font-size: inherit;
+}
+
+.primitive-text-strong {
+  font-weight: 700;
+}
+
+.primitive-text-em {
+  font-style: italic;
+}
+
+/* Form Styles */
+.primitive-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Label Styles */
+.primitive-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #4A3A2F;
+}
+
+/* Nav Styles */
+.primitive-nav {
+  /* Base nav - no default styles, use className for customization */
+}

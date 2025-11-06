@@ -1,0 +1,101 @@
+/* Page Header */
+.layout-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.layout-page-title {
+  color: #4A3A2F;
+  font-weight: 700;
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.layout-page-action-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.layout-page-action-icon {
+  font-size: 1.2rem;
+}
+
+/* Empty State */
+.layout-empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #4A3A2F;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px #8ed1fc22;
+}
+
+.layout-empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.layout-empty-state-title {
+  margin: 0 0 0.5rem 0;
+  color: #4A3A2F;
+}
+
+.layout-empty-state-text {
+  margin: 0;
+  color: #666;
+}
+
+/* Loading State */
+.layout-loading-state {
+  text-align: center;
+  padding: 2rem;
+  color: #4A3A2F;
+  font-size: 1.1rem;
+}
+
+.layout-loading-state-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* Error Message */
+.layout-error-message {
+  color: #b00020;
+  background: #ffebee;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid #ffcdd2;
+}
+
+/* Form Group */
+.layout-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.layout-form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #4A3A2F;
+}
+
+/* Form Actions */
+.layout-form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.layout-form-button-cancel {
+  flex: 1;
+}
+
+.layout-form-button-submit {
+  flex: 1;
+}

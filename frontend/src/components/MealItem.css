@@ -1,0 +1,80 @@
+.meal-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.meal-item-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.meal-item-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #28a745;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.meal-item-name {
+  font-weight: 600;
+  color: #4A3A2F;
+  text-transform: capitalize;
+  font-size: 1.1rem;
+}
+
+.meal-item-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.meal-item-time {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #4A3A2F;
+}
+
+.meal-item-edit-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.meal-item-time-input {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.meal-item-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.meal-item-button.save-button {
+  background: #28a745;
+  color: white;
+}
+
+.meal-item-button.cancel-button {
+  background: #6c757d;
+  color: white;
+}
+
+.meal-item-button.edit-button {
+  background: #007bff;
+  color: white;
+}

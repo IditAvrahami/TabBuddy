@@ -1,0 +1,87 @@
+.drug-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px #8ed1fc22;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  border: 1px solid #f0f0f0;
+}
+
+.drug-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px #8ed1fc33;
+}
+
+.drug-card-icon {
+  display: inline-block;
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  margin-right: 20px;
+  border: 3px solid #8ED1FC;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.drug-card-icon.pill {
+  background: linear-gradient(180deg, #8ED1FC 50%, #F6A96B 50%);
+}
+
+.drug-card-icon.liquid {
+  background: linear-gradient(180deg, #F6A96B 50%, #8ED1FC 50%);
+}
+
+.drug-card-icon-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #4A3A2F;
+  border-radius: 50%;
+}
+
+.drug-card-icon-dot-left {
+  left: 12px;
+  top: 12px;
+}
+
+.drug-card-icon-dot-right {
+  right: 12px;
+  top: 12px;
+}
+
+.drug-card-icon-line {
+  position: absolute;
+  left: 15px;
+  top: 24px;
+  width: 18px;
+  height: 6px;
+  border-radius: 3px;
+  background: #4A3A2F;
+}
+
+.drug-card-info {
+  flex: 1;
+}
+
+.drug-card-name {
+  font-weight: 700;
+  color: #4A3A2F;
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.drug-card-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+  color: #4A3A2F;
+  font-size: 0.95rem;
+}
+
+.drug-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
