@@ -38,7 +38,6 @@ class DependencyType(enum.Enum):
     DRUG = "drug"  # Depends on another drug
     MEAL = "meal"  # Depends on meal time
     ABSOLUTE = "absolute"  # Absolute time
-    INDEPENDENT = "independent"  # No dependencies
 
 
 # Core drug information
@@ -55,12 +54,6 @@ class DrugORM(Base):
         "DrugSchedule",
         foreign_keys="[DrugSchedule.drug_id]",
         back_populates="drug",
-        cascade="all, delete-orphan",
-    )
-    dependent_schedules: Mapped[list["DrugSchedule"]] = relationship(
-        "DrugSchedule",
-        foreign_keys="[DrugSchedule.depends_on_drug_id]",
-        back_populates="depends_on_drug",
         cascade="all, delete-orphan",
     )
 
@@ -83,18 +76,16 @@ class DrugORM(Base):
 
     @property
     def amount_per_day(self) -> int | None:
-        """Computed alias for legacy field, mapped from schedule.frequency_per_day."""
+        """Computed alias for legacy field - returns the number of active schedules for this drug."""
         session = object_session(self)
         if session is None:
             return None
-        sched = (
+        count = (
             session.query(DrugSchedule)
             .filter(DrugSchedule.drug_id == self.id, DrugSchedule.is_active)
-            .first()
+            .count()
         )
-        if not sched:
-            return None
-        return sched.frequency_per_day
+        return count if count > 0 else None
 
 
 # Meal schedules
@@ -128,18 +119,18 @@ class DrugSchedule(Base):
 
     # Dependency configuration
     dependency_type: Mapped[DependencyType] = mapped_column(
-        Enum(DependencyType), nullable=False, default=DependencyType.INDEPENDENT
+        Enum(DependencyType), nullable=False, default=DependencyType.ABSOLUTE
     )
 
     # For DRUG dependency
-    depends_on_drug_id: Mapped[int | None] = mapped_column(
+    depends_on_schedule_id: Mapped[int | None] = mapped_column(
         Integer,
-        ForeignKey("drugs.id", ondelete="CASCADE", onupdate="CASCADE"),
+        ForeignKey("drug_schedules.id", ondelete="CASCADE", onupdate="CASCADE"),
         nullable=True,
     )
     drug_offset_minutes: Mapped[int | None] = mapped_column(
         Integer, nullable=True
-    )  # Minutes after/before dependent drug
+    )  # Minutes after/before dependent schedule
 
     # For MEAL dependency
     meal_schedule_id: Mapped[int | None] = mapped_column(
@@ -149,10 +140,7 @@ class DrugSchedule(Base):
     )
     meal_offset_minutes: Mapped[int | None] = mapped_column(
         Integer, nullable=True
-    )  # Minutes before/after meal
-    meal_timing: Mapped[str | None] = mapped_column(
-        String(10), nullable=True
-    )  # 'before' or 'after'
+    )  # Signed minutes: negative = before meal, positive = after meal
 
     # For ABSOLUTE dependency
     absolute_time: Mapped[time | None] = mapped_column(
@@ -160,7 +148,6 @@ class DrugSchedule(Base):
     )  # Specific time of day
 
     # Schedule properties
-    frequency_per_day: Mapped[int] = mapped_column(Integer, nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -172,10 +159,10 @@ class DrugSchedule(Base):
     drug: Mapped["DrugORM"] = relationship(
         "DrugORM", foreign_keys=[drug_id], back_populates="schedules"
     )
-    depends_on_drug: Mapped["DrugORM | None"] = relationship(
-        "DrugORM",
-        foreign_keys=[depends_on_drug_id],
-        back_populates="dependent_schedules",
+    depends_on_schedule: Mapped["DrugSchedule | None"] = relationship(
+        "DrugSchedule",
+        foreign_keys=[depends_on_schedule_id],
+        remote_side="DrugSchedule.id",
     )
     meal_schedule: Mapped["MealSchedule | None"] = relationship(
         "MealSchedule", back_populates="drug_schedules"

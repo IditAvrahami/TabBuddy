@@ -1,5 +1,5 @@
 import logging
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
@@ -11,6 +11,10 @@ from backend.models import (
     DrugORM,
     DrugSchedule,
     NotificationOverride,
+)
+from backend.services.notification_scheduler import (
+    NotificationScheduler,
+    get_notification_scheduler,
 )
 
 logger = logging.getLogger(__name__)
@@ -26,12 +30,7 @@ class DrugCreateCompat(BaseModel):
     amount_per_dose: int = Field(..., description="Amount per dose")
 
     # New scheduling fields (preferred)
-    dependency_type: str | None = Field(
-        "independent", description="absolute|meal|drug|independent"
-    )
-    frequency_per_day: int | None = Field(
-        None, description="Times per day (ignored for absolute)"
-    )
+    dependency_type: str = Field("absolute", description="absolute|meal|drug")
     start_date: date | None = Field(None, description="Start date")
     end_date: date | None = Field(None, description="End date (optional)")
     absolute_time: time | None = Field(
@@ -41,19 +40,15 @@ class DrugCreateCompat(BaseModel):
         None, description="Meal schedule ID (for meal dependency)"
     )
     meal_offset_minutes: int | None = Field(
-        None, description="Minutes before/after meal"
+        None,
+        description="Signed minutes: negative = before meal, positive = after meal",
     )
-    meal_timing: str | None = Field(None, description="before or after meal")
-    depends_on_drug_id: int | None = Field(
-        None, description="Drug ID to depend on (for drug dependency)"
+    depends_on_schedule_id: int | None = Field(
+        None, description="Schedule ID to depend on (for drug dependency)"
     )
     drug_offset_minutes: int | None = Field(
-        None, description="Minutes after dependent drug"
+        None, description="Minutes after dependent schedule"
     )
-
-    # Legacy fields (for backward compatibility with tests/UI)
-    duration: int | None = Field(None, description="Legacy: duration in days")
-    amount_per_day: int | None = Field(None, description="Legacy: frequency per day")
 
 
 class DrugResponse(BaseModel):
@@ -61,7 +56,6 @@ class DrugResponse(BaseModel):
     name: str
     kind: str
     amount_per_dose: int
-    frequency_per_day: int
     start_date: date
     end_date: date | None
     duration: int | None = None
@@ -70,8 +64,7 @@ class DrugResponse(BaseModel):
     absolute_time: time | None
     meal_schedule_id: int | None
     meal_offset_minutes: int | None
-    meal_timing: str | None
-    depends_on_drug_id: int | None
+    depends_on_schedule_id: int | None
     drug_offset_minutes: int | None
     is_active: bool
     created_at: datetime | None
@@ -90,29 +83,98 @@ def schedule_to_response(schedule: DrugSchedule) -> DrugResponse:
         name=schedule.drug.name,
         kind=schedule.drug.kind,
         amount_per_dose=schedule.drug.amount_per_dose,
-        frequency_per_day=schedule.frequency_per_day,
         start_date=schedule.start_date,
         end_date=schedule.end_date,
-        duration=(
-            (schedule.end_date - schedule.start_date).days + 1
-            if schedule.end_date is not None
-            else None
-        ),
-        amount_per_day=schedule.frequency_per_day,
+        duration=schedule.drug.duration,
+        amount_per_day=schedule.drug.amount_per_day,
         dependency_type=schedule.dependency_type.value,
         absolute_time=schedule.absolute_time,
         meal_schedule_id=schedule.meal_schedule_id,
         meal_offset_minutes=schedule.meal_offset_minutes,
-        meal_timing=schedule.meal_timing,
-        depends_on_drug_id=schedule.depends_on_drug_id,
+        depends_on_schedule_id=schedule.depends_on_schedule_id,
         drug_offset_minutes=schedule.drug_offset_minutes,
         is_active=schedule.is_active,
         created_at=schedule.created_at,
     )
 
 
+def validate_dependent_schedule(
+    db: Session,
+    depends_on_schedule_id: int | None,
+    schedule_start_date: date,
+    schedule_end_date: date | None,
+    schedule_id: int | None = None,
+) -> None:
+    """Validate that a dependent schedule is valid for a DRUG dependency.
+
+    Args:
+        db: Database session
+        depends_on_schedule_id: The schedule ID to depend on (None if not a DRUG dependency)
+        schedule_start_date: Start date of the schedule being created/updated
+        schedule_end_date: End date of the schedule being created/updated (None if open-ended)
+        schedule_id: ID of the schedule being updated (None for new schedules)
+
+    Raises:
+        HTTPException: If the dependent schedule is invalid
+    """
+    if depends_on_schedule_id is None:
+        return  # Not a DRUG dependency, no validation needed
+
+    # Check if dependent schedule exists
+    dependent_schedule = (
+        db.query(DrugSchedule).filter(DrugSchedule.id == depends_on_schedule_id).first()
+    )
+    if not dependent_schedule:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Dependent schedule (schedule_id={depends_on_schedule_id}) not found",
+        )
+
+    # Prevent self-dependency
+    if schedule_id is not None and depends_on_schedule_id == schedule_id:
+        raise HTTPException(status_code=400, detail="Schedule cannot depend on itself")
+
+    # Check if dependent schedule is active
+    if not dependent_schedule.is_active:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Dependent schedule (schedule_id={depends_on_schedule_id}) is not active",
+        )
+
+    # Check if date ranges overlap
+    # Dependent schedule must be valid for at least part of the new schedule's date range
+    dependent_start = dependent_schedule.start_date
+    dependent_end = dependent_schedule.end_date
+
+    # Check if dependent schedule starts after the new schedule's end date
+    if dependent_end is not None and dependent_end < schedule_start_date:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Dependent schedule (schedule_id={depends_on_schedule_id}) ends before the schedule start date ({schedule_start_date})",
+        )
+
+    # Check if dependent schedule ends before the new schedule's start date
+    if schedule_end_date is not None and dependent_start > schedule_end_date:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Dependent schedule (schedule_id={depends_on_schedule_id}) starts after the schedule end date ({schedule_end_date})",
+        )
+
+    # If new schedule has no end date, check that dependent schedule covers at least the start date
+    if schedule_end_date is None:
+        if dependent_end is not None and dependent_end < schedule_start_date:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Dependent schedule (schedule_id={depends_on_schedule_id}) ends before the schedule start date ({schedule_start_date})",
+            )
+
+
 @router.post("/drug")
-def add_drug(drug: DrugCreateCompat, db: Session = Depends(get_db)) -> DrugResponse:
+async def add_drug(
+    drug: DrugCreateCompat,
+    db: Session = Depends(get_db),
+    scheduler: NotificationScheduler = Depends(get_notification_scheduler),
+) -> DrugResponse:
     logger.info("POST /drug payload=%s", drug.model_dump())
 
     # Debug timezone conversion
@@ -137,44 +199,41 @@ def add_drug(drug: DrugCreateCompat, db: Session = Depends(get_db)) -> DrugRespo
     db.add(drug_orm)
     db.flush()  # Get the drug ID
 
-    # Compute schedule attributes (new or legacy mapping)
-    dep_type_str = drug.dependency_type or "independent"
-    # Legacy mapping: if duration/amount_per_day provided and new fields absent
-    if (
-        drug.duration is not None
-        and drug.amount_per_day is not None
-        and drug.start_date is None
-    ):
-        start_date: date = date.today()
-        end_date: date | None = start_date + timedelta(days=max(0, drug.duration - 1))
-        frequency_per_day: int = drug.amount_per_day
-        absolute_time: time | None = None
-        dependency_type: DependencyType = DependencyType("independent")
-    else:
-        start_date = drug.start_date or date.today()
-        end_date = drug.end_date
-        frequency_per_day = (
-            1 if dep_type_str == "absolute" else (drug.frequency_per_day or 1)
+    # Compute schedule attributes
+    dep_type_str = drug.dependency_type
+    start_date = drug.start_date or date.today()
+    end_date = drug.end_date
+    # Frontend now sends UTC time directly
+    absolute_time = drug.absolute_time
+    dependency_type = DependencyType(dep_type_str)
+
+    # Validate dependent schedule if this is a DRUG dependency
+    if dependency_type == DependencyType.DRUG:
+        validate_dependent_schedule(
+            db, drug.depends_on_schedule_id, start_date, end_date
         )
-        # Frontend now sends UTC time directly
-        absolute_time = drug.absolute_time
-        dependency_type = DependencyType(dep_type_str)
+
+    # Create a single schedule
     schedule = DrugSchedule(
         drug_id=drug_orm.id,
         dependency_type=dependency_type,
-        frequency_per_day=frequency_per_day,
         start_date=start_date,
         end_date=end_date,
         absolute_time=absolute_time,
         meal_schedule_id=drug.meal_schedule_id,
         meal_offset_minutes=drug.meal_offset_minutes,
-        meal_timing=drug.meal_timing,
-        depends_on_drug_id=drug.depends_on_drug_id,
+        depends_on_schedule_id=drug.depends_on_schedule_id,
         drug_offset_minutes=drug.drug_offset_minutes,
     )
     db.add(schedule)
-    db.commit()
+    db.flush()  # Flush to get the schedule ID without committing
     db.refresh(schedule)  # Refresh to get the latest data
+
+    # Schedule notifications in Redis (critical - must succeed)
+    await scheduler.schedule_notification(schedule.id, start_date)
+    # Also schedule for today if start_date is today or in the past
+    if start_date <= date.today():
+        await scheduler.schedule_notification(schedule.id, date.today())
 
     logger.info("POST /drug success name=%s", drug.name)
     return schedule_to_response(schedule)
@@ -202,8 +261,11 @@ def get_all_drugs(db: Session = Depends(get_db)) -> list[DrugResponse]:
 
 
 @router.put("/drug-id/{drug_id}")
-def update_drug(
-    drug_id: int, drug: DrugCreateCompat, db: Session = Depends(get_db)
+async def update_drug(
+    drug_id: int,
+    drug: DrugCreateCompat,
+    db: Session = Depends(get_db),
+    scheduler: NotificationScheduler = Depends(get_notification_scheduler),
 ) -> DrugResponse:
     logger.info("PUT /drug/%d payload=%s", drug_id, drug.model_dump())
 
@@ -222,48 +284,47 @@ def update_drug(
     absolute_time_changed = False
 
     # Update schedule info
-    dep_type_str = drug.dependency_type or schedule.dependency_type.value
-    schedule.dependency_type = DependencyType(dep_type_str)
-    # Legacy mapping for update: if only legacy provided
-    if (
-        drug.duration is not None
-        and drug.amount_per_day is not None
-        and drug.start_date is None
-    ):
-        schedule.start_date = date.today()
-        schedule.end_date = schedule.start_date + timedelta(
-            days=max(0, drug.duration - 1)
-        )
-        schedule.frequency_per_day = drug.amount_per_day
-        # If absolute_time is being removed (set to None), mark as changed
-        if old_absolute_time is not None:
+    dep_type_str = drug.dependency_type
+    dependency_type = DependencyType(dep_type_str)
+    schedule.dependency_type = dependency_type
+
+    if drug.start_date is not None:
+        schedule.start_date = drug.start_date
+    if drug.end_date is not None:
+        schedule.end_date = drug.end_date
+    if drug.absolute_time is not None:
+        # Check if absolute_time is actually changing
+        if old_absolute_time != drug.absolute_time:
             absolute_time_changed = True
-        schedule.absolute_time = None
-    else:
-        if drug.frequency_per_day is not None:
-            schedule.frequency_per_day = (
-                1 if dep_type_str == "absolute" else drug.frequency_per_day
+            logger.info(
+                "Absolute time changed from %s to %s for schedule %d",
+                old_absolute_time,
+                drug.absolute_time,
+                schedule.id,
             )
-        if drug.start_date is not None:
-            schedule.start_date = drug.start_date
-        if drug.end_date is not None:
-            schedule.end_date = drug.end_date
-        if drug.absolute_time is not None:
-            # Check if absolute_time is actually changing
-            if old_absolute_time != drug.absolute_time:
-                absolute_time_changed = True
-                logger.info(
-                    "Absolute time changed from %s to %s for schedule %d",
-                    old_absolute_time,
-                    drug.absolute_time,
-                    schedule.id,
-                )
-            # Frontend now sends UTC time directly
-            schedule.absolute_time = drug.absolute_time
+        # Frontend now sends UTC time directly
+        schedule.absolute_time = drug.absolute_time
     schedule.meal_schedule_id = drug.meal_schedule_id
     schedule.meal_offset_minutes = drug.meal_offset_minutes
-    schedule.meal_timing = drug.meal_timing
-    schedule.depends_on_drug_id = drug.depends_on_drug_id
+
+    # Validate dependent schedule if this is a DRUG dependency
+    if dependency_type == DependencyType.DRUG:
+        # Get the updated dates for validation
+        updated_start_date = schedule.start_date
+        updated_end_date = schedule.end_date
+        if drug.start_date is not None:
+            updated_start_date = drug.start_date
+        if drug.end_date is not None:
+            updated_end_date = drug.end_date
+        validate_dependent_schedule(
+            db,
+            drug.depends_on_schedule_id,
+            updated_start_date,
+            updated_end_date,
+            schedule.id,
+        )
+
+    schedule.depends_on_schedule_id = drug.depends_on_schedule_id
     schedule.drug_offset_minutes = drug.drug_offset_minutes
 
     # If absolute_time changed, clear notification overrides for today and future dates
@@ -290,14 +351,22 @@ def update_drug(
             schedule.id,
         )
 
-    db.commit()
+    db.flush()  # Flush to ensure changes are available
     db.refresh(schedule)  # Refresh to get the latest data
+
+    # Reschedule notifications in Redis (critical - must succeed)
+    await scheduler.reschedule_schedule(schedule.id)
+
     logger.info("PUT /drug/%d success name=%s", drug_id, drug.name)
     return schedule_to_response(schedule)
 
 
 @router.delete("/drug-id/{drug_id}")
-def delete_drug(drug_id: int, db: Session = Depends(get_db)) -> DrugResponse:
+async def delete_drug(
+    drug_id: int,
+    db: Session = Depends(get_db),
+    scheduler: NotificationScheduler = Depends(get_notification_scheduler),
+) -> DrugResponse:
     logger.info("DELETE /drug/%d", drug_id)
 
     schedule = db.query(DrugSchedule).filter(DrugSchedule.id == drug_id).first()
@@ -308,11 +377,20 @@ def delete_drug(drug_id: int, db: Session = Depends(get_db)) -> DrugResponse:
     # Create response before deleting
     response = schedule_to_response(schedule)
 
+    # Unschedule notifications from Redis (critical - must succeed)
+    # Unschedule for today and future dates
+    from datetime import date, timedelta
+
+    today = date.today()
+    # Unschedule for the next 30 days to be safe
+    for i in range(30):
+        target_date = today + timedelta(days=i)
+        await scheduler.unschedule_notification(schedule.id, target_date)
+
     # Delete the schedule and its drug (for compatibility with tests expecting row removal)
     db.delete(schedule)
     # Also delete the drug row
     db.delete(schedule.drug)
-    db.commit()
 
     logger.info("DELETE /drug/%d success", drug_id)
     return response
@@ -320,8 +398,11 @@ def delete_drug(drug_id: int, db: Session = Depends(get_db)) -> DrugResponse:
 
 # Compatibility endpoints using name instead of id
 @router.put("/drug/{name}")
-def update_drug_by_name(
-    name: str, drug: DrugCreateCompat, db: Session = Depends(get_db)
+async def update_drug_by_name(
+    name: str,
+    drug: DrugCreateCompat,
+    db: Session = Depends(get_db),
+    scheduler: NotificationScheduler = Depends(get_notification_scheduler),
 ) -> DrugResponse:
     logger.info("PUT /drug/%s payload=%s", name, drug.model_dump())
     schedule = (
@@ -332,11 +413,15 @@ def update_drug_by_name(
     )
     if not schedule:
         raise HTTPException(status_code=404, detail="Drug not found")
-    return update_drug(schedule.id, drug, db)
+    return await update_drug(schedule.id, drug, db, scheduler)
 
 
 @router.delete("/drug/{name}")
-def delete_drug_by_name(name: str, db: Session = Depends(get_db)) -> DrugResponse:
+async def delete_drug_by_name(
+    name: str,
+    db: Session = Depends(get_db),
+    scheduler: NotificationScheduler = Depends(get_notification_scheduler),
+) -> DrugResponse:
     logger.info("DELETE /drug/%s", name)
     schedule = (
         db.query(DrugSchedule)
@@ -353,22 +438,24 @@ def delete_drug_by_name(name: str, db: Session = Depends(get_db)) -> DrugRespons
             )
             if not schedule:
                 raise HTTPException(status_code=404, detail="Drug not found")
-            return delete_drug(schedule.id, db)
+            return await delete_drug(schedule.id, db, scheduler)
         except ValueError:
             raise HTTPException(status_code=404, detail="Drug not found") from None
-    return delete_drug(schedule.id, db)
+    return await delete_drug(schedule.id, db, scheduler)
 
 
 # ID-based deletion kept for compatibility with tests calling /drug/{id}
 @router.delete("/drug/{schedule_id}")
-def delete_drug_by_id_compat(
-    schedule_id: int, db: Session = Depends(get_db)
+async def delete_drug_by_id_compat(
+    schedule_id: int,
+    db: Session = Depends(get_db),
+    scheduler: NotificationScheduler = Depends(get_notification_scheduler),
 ) -> DrugResponse:
     logger.info("DELETE /drug/%d", schedule_id)
     schedule = db.query(DrugSchedule).filter(DrugSchedule.id == schedule_id).first()
     if not schedule:
         raise HTTPException(status_code=404, detail="Drug not found")
-    return delete_drug(schedule.id, db)
+    return await delete_drug(schedule.id, db, scheduler)
 
 
 # NOTE: Meal schedule endpoints are defined in backend.api.meal; duplicates removed here.

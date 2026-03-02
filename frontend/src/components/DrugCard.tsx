@@ -19,12 +19,16 @@ const DrugCard: React.FC<DrugCardProps> = ({ drug, onEdit, onDelete }) => {
         const localTime = drug.absolute_time ? convertUTCToLocalTime(drug.absolute_time) : '';
         return `At ${localTime} (local time)`;
       case 'meal':
-        return `Meal dependency (${drug.meal_timing} meal)`;
+        if (drug.meal_offset_minutes !== undefined) {
+          const timing = drug.meal_offset_minutes < 0 ? 'before' : 'after';
+          const minutes = Math.abs(drug.meal_offset_minutes);
+          return `Meal dependency (${timing} meal, ${minutes} min)`;
+        }
+        return 'Meal dependency';
       case 'drug':
         return `Depends on another drug`;
-      case 'independent':
       default:
-        return 'Independent timing';
+        return 'Unknown timing';
     }
   };
 
@@ -60,9 +64,6 @@ const DrugCard: React.FC<DrugCardProps> = ({ drug, onEdit, onDelete }) => {
           </Container>
           <Container>
             <Text variant="strong">End:</Text> {drug.end_date ? new Date(drug.end_date).toLocaleDateString() : 'No end date'}
-          </Container>
-          <Container>
-            <Text variant="strong">Frequency:</Text> {drug.frequency_per_day} time(s) per day
           </Container>
           <Container>
             <Text variant="strong">Timing:</Text> {getTimingDescription(drug)}

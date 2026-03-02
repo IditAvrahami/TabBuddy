@@ -21,7 +21,6 @@ def create_utc_notification():
         "name": f"UTC Test {utc_now.strftime('%H%M%S')}",
         "kind": "pill",
         "amount_per_dose": 1,
-        "frequency_per_day": 1,
         "start_date": TODAY,
         "end_date": TODAY,
         "dependency_type": "absolute",

@@ -45,6 +45,9 @@ repos:
             alembic,
             freezegun,
             pytest>=7.0.0,
+            redis,
+            aio-pika,
+            types-redis,
           ]
         args: [--config-file=backend/pyproject.toml]
 

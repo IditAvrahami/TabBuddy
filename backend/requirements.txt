@@ -12,3 +12,7 @@ black
 ruff
 mypy
 sqlalchemy2-stubs
+redis
+hiredis
+aio-pika
+types-redis

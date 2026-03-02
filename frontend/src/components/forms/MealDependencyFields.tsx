@@ -11,7 +11,6 @@ interface MealSchedule {
 interface MealDependencyFieldsProps {
   mealSchedules: MealSchedule[];
   mealScheduleId: string;
-  mealTiming: 'before' | 'after';
   mealOffsetMinutes: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 }
@@ -19,7 +18,6 @@ interface MealDependencyFieldsProps {
 const MealDependencyFields: React.FC<MealDependencyFieldsProps> = ({
   mealSchedules,
   mealScheduleId,
-  mealTiming,
   mealOffsetMinutes,
   onChange,
 }) => {
@@ -41,24 +39,12 @@ const MealDependencyFields: React.FC<MealDependencyFieldsProps> = ({
         ))}
       </FormField>
       <FormField
-        label="Timing"
-        type="select"
-        name="mealTiming"
-        value={mealTiming}
-        onChange={onChange}
-        required
-      >
-        <Option value="before">Before meal</Option>
-        <Option value="after">After meal</Option>
-      </FormField>
-      <FormField
         label="Offset (minutes)"
         type="number"
         name="mealOffsetMinutes"
         value={mealOffsetMinutes}
         onChange={onChange}
-        placeholder="Minutes before/after meal"
-        min={0}
+        placeholder="Negative = before meal, positive = after meal"
         required
       />
     </>

@@ -6,7 +6,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.models import MealSchedule
+from backend.models import DrugSchedule, MealSchedule
+from backend.services.notification_scheduler import (
+    NotificationScheduler,
+    get_notification_scheduler,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -78,8 +82,11 @@ def create_meal_schedule(
 
 
 @router.put("/meal-schedules/{meal_name}")
-def update_meal_schedule(
-    meal_name: str, meal: MealScheduleUpdate, db: Session = Depends(get_db)
+async def update_meal_schedule(
+    meal_name: str,
+    meal: MealScheduleUpdate,
+    db: Session = Depends(get_db),
+    scheduler: NotificationScheduler = Depends(get_notification_scheduler),
 ) -> MealScheduleDto:
     logger.info("PUT /meal-schedules/%s payload=%s", meal_name, meal.model_dump())
 
@@ -97,8 +104,27 @@ def update_meal_schedule(
         ) from e
 
     row.base_time = time_obj
-    db.commit()
+    db.flush()  # Flush to ensure changes are available
     db.refresh(row)  # Refresh to get the latest data
+
+    # Reschedule all drug notifications that depend on this meal (critical - must succeed)
+    # Find all drug schedules that depend on this meal
+    dependent_schedules = (
+        db.query(DrugSchedule)
+        .filter(
+            DrugSchedule.meal_schedule_id == row.id,
+            DrugSchedule.is_active,
+        )
+        .all()
+    )
+
+    logger.info(
+        f"Rescheduling notifications for {len(dependent_schedules)} schedules dependent on meal {meal_name}"
+    )
+
+    for schedule in dependent_schedules:
+        await scheduler.reschedule_schedule(schedule.id)
+
     logger.info("PUT /meal-schedules/%s success", meal_name)
     return meal_schedule_to_dto(row)
 

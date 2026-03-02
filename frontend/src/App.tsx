@@ -19,7 +19,7 @@ function App() {
   // Notification state
   const [activeNotification, setActiveNotification] = useState<NotificationDto | null>(null);
   const [notificationQueue, setNotificationQueue] = useState<NotificationDto[]>([]);
-  const [pollTimer, setPollTimer] = useState<NodeJS.Timeout | null>(null);
+  const [eventSource, setEventSource] = useState<EventSource | null>(null);
 
   const loadDrugs = async () => {
     try {
@@ -35,27 +35,46 @@ function App() {
     }
   };
 
-  // Notification polling
-  const pollNotifications = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const notifications = await api.getNotifications(today);
+  // Setup SSE connection for notifications
+  const setupNotificationStream = () => {
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+    const streamUrl = `${apiUrl}/notifications/stream`;
 
-      console.log(`Polling notifications: ${notifications.length} due now`);
+    console.log('Connecting to notification stream:', streamUrl);
 
-      // Backend handles all timing logic - just add new notifications to queue
-      setNotificationQueue(prev => {
-        const existingIds = new Set(prev.map(n => n.schedule_id));
-        const newNotifications = notifications.filter(n => !existingIds.has(n.schedule_id));
+    const es = new EventSource(streamUrl);
 
-        if (newNotifications.length > 0) {
-          console.log(`Adding ${newNotifications.length} new notifications to queue`);
-        }
-        return [...prev, ...newNotifications];
-      });
-    } catch (err) {
-      console.error('Failed to poll notifications:', err);
-    }
+    es.onmessage = (event) => {
+      try {
+        const notification: NotificationDto = JSON.parse(event.data);
+        console.log('Received notification:', notification);
+
+        // Add to queue if not already present
+        setNotificationQueue(prev => {
+          const existingIds = new Set(prev.map(n => n.schedule_id));
+          if (!existingIds.has(notification.schedule_id)) {
+            console.log(`Adding notification to queue: ${notification.drug_name}`);
+            return [...prev, notification];
+          }
+          return prev;
+        });
+      } catch (err) {
+        console.error('Failed to parse notification:', err);
+      }
+    };
+
+    es.onerror = (error) => {
+      console.error('EventSource error:', error);
+      // EventSource will automatically reconnect
+    };
+
+    es.onopen = () => {
+      console.log('Notification stream connected');
+    };
+
+    setEventSource(es);
+
+    return es;
   };
 
   // Show next notification in queue
@@ -111,15 +130,15 @@ function App() {
   useEffect(() => {
     loadDrugs();
 
-    // Start polling for notifications every 5 seconds (for testing)
-    const timer = setInterval(pollNotifications, 5000);
-    setPollTimer(timer);
-
-    // Initial poll
-    pollNotifications();
+    // Setup SSE connection for real-time notifications
+    const es = setupNotificationStream();
 
     return () => {
-      if (timer) clearInterval(timer);
+      // Cleanup: close EventSource connection
+      if (es) {
+        es.close();
+        console.log('Notification stream closed');
+      }
     };
   }, []);
 
