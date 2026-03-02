@@ -29,19 +29,25 @@ TabBuddy helps patients and caregivers coordinate complex medication plans. The 
 - **Backend (`backend/`)**
   - FastAPI application (`backend/main.py`) exposing `/drug`, `/meal-schedules`, and `/notifications` routes.
   - SQLAlchemy models (`backend/models.py`) representing drugs, schedules, meals, and notification overrides stored in PostgreSQL.
-  - `TimelineCalculator` service (`backend/services/timeline_calculator.py`) computes due notifications and applies snooze/dismiss overrides.
+  - `NotificationScheduler` service (`backend/services/notification_scheduler.py`) pre-calculates and stores notifications in Redis using sorted sets.
+  - Event-based notification system: Redis ZSET for scheduling, RabbitMQ for message queuing, SSE for real-time streaming.
   - Alembic migrations in `backend/alembic/` keep the schema in sync.
+- **Worker Service (`worker/`)**
+  - Separate async microservice that periodically checks Redis for due notifications and publishes them to RabbitMQ.
+  - Runs as an independent container, scalable independently from the backend.
 - **Frontend (`frontend/`)**
   - React + TypeScript single-page app (`frontend/src/App.tsx`) with tabs for drug management and settings.
-  - Polls the backend `/notifications` endpoint, shows `ReminderModal`, and provides CRUD forms for schedules.
+  - Uses Server-Sent Events (SSE) via `/notifications/stream` endpoint for real-time notifications.
+  - Provides CRUD forms for schedules and handles snooze/dismiss actions.
   - Shared primitives and form components under `frontend/src/components/`.
 - **Infrastructure**
-  - `docker-compose.yml` orchestrates PostgreSQL, backend, and frontend containers for a full-stack dev environment.
+  - `docker-compose.yml` orchestrates PostgreSQL, Redis, RabbitMQ, backend, worker, and frontend containers.
   - Helper scripts under `tools/` handle test database orchestration and debugging.
 
 ## Tech Stack
-- Backend: FastAPI, Pydantic, SQLAlchemy, Alembic, PostgreSQL, Uvicorn.
-- Frontend: React 19, TypeScript 4.9, react-scripts 5, CSS modules.
+- Backend: FastAPI, Pydantic, SQLAlchemy, Alembic, PostgreSQL, Redis, RabbitMQ, Uvicorn.
+- Worker: Async Python service using `aio-pika` and `redis.asyncio` for event processing.
+- Frontend: React 19, TypeScript 4.9, react-scripts 5, CSS modules, Server-Sent Events (SSE).
 - Tooling: pytest, httpx, Testing Library, Docker, Ruff, Black, Mypy, ESLint.
 
 ## Getting Started
@@ -98,10 +104,13 @@ docker compose up --build
 
 Services:
 - `db`: PostgreSQL 16 exposed on `5433`.
+- `redis`: Redis 7 for notification scheduling (exposed on `6379`).
+- `rabbitmq`: RabbitMQ 3 for message queuing (exposed on `5672`, management UI on `15672`).
 - `backend`: FastAPI on `8000`.
+- `worker`: Async notification worker service (runs in background).
 - `frontend`: React dev server on `3000` (proxies to backend via `REACT_APP_API_URL`).
 
-Stop the stack with `docker compose down`. Named volume `pgdata` persists database state.
+Stop the stack with `docker compose down`. Named volumes `pgdata` and `redisdata` persist database and Redis state.
 
 ## Running Tests
 - **Backend**: `python tools/run_tests.py` spins up a temporary PostgreSQL instance (port `5434`) and runs pytest in `backend/test/`. You can also run `pytest backend/test -v` if you manage the test DB yourself.
@@ -111,9 +120,14 @@ Stop the stack with `docker compose down`. Named volume `pgdata` persists databa
 ```text
 backend/
   api/                # FastAPI routers for drugs, meals, notifications
-  services/           # Timeline calculator and supporting utilities
+  services/           # Notification scheduler, Redis client, RabbitMQ client
   models.py           # SQLAlchemy ORM models
   main.py             # FastAPI entrypoint
+worker/
+  main.py             # Async worker service for processing notifications
+frontend/
+  src/                # React components, API layer, styles, utilities
+  public/            # Static assets for CRA
 frontend/
   src/                # React components, API layer, styles, utilities
   public/             # Static assets for CRA
@@ -126,7 +140,8 @@ docker-compose.yml    # Full-stack orchestration
 ## API Surface
 - `POST /drug`, `GET /drug`, `PUT /drug-id/{id}`, `DELETE /drug-id/{id}` – CRUD for drug schedules with dependency configuration.
 - `GET/POST/PUT/DELETE /meal-schedules` – manage meal anchor times.
-- `GET /notifications` – poll for notifications due within the current time window.
+- `GET /notifications/stream` – Server-Sent Events (SSE) endpoint for real-time notifications (recommended).
+- `GET /notifications` – deprecated polling endpoint (returns empty list, use `/notifications/stream` instead).
 - `POST /notifications/{schedule_id}/snooze` – push a notification by N minutes.
 - `POST /notifications/{schedule_id}/dismiss` – suppress a notification for the day.
 

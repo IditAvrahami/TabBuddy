@@ -30,8 +30,6 @@ def test_add_drug_success(db_session: Session, test_client: TestClient) -> None:
     assert data["name"] == payload["name"]
     assert data["kind"] == payload["kind"]
     assert data["amount_per_dose"] == payload["amount_per_dose"]
-    assert data["duration"] == payload["duration"]
-    assert data["amount_per_day"] == payload["amount_per_day"]
 
     # Verify drug was added to database (integration check)
     assert get_db_count(db_session) == initial_count + 1
@@ -89,8 +87,6 @@ def test_get_all_drugs(db_session: Session, test_client: TestClient) -> None:
     api_drug = next(d for d in data if d["name"] == "Paracetamol")
     assert api_drug["kind"] == created_drug["kind"]
     assert api_drug["amount_per_dose"] == created_drug["amount_per_dose"]
-    assert api_drug["duration"] == created_drug["duration"]
-    assert api_drug["amount_per_day"] == created_drug["amount_per_day"]
 
 
 def test_update_drug_success(db_session: Session, test_client: TestClient) -> None:
@@ -123,8 +119,6 @@ def test_update_drug_success(db_session: Session, test_client: TestClient) -> No
     data = resp.json()
     assert data["name"] == updated["name"]
     assert data["amount_per_dose"] == updated["amount_per_dose"]
-    assert data["duration"] == updated["duration"]
-    assert data["amount_per_day"] == updated["amount_per_day"]
 
     # Verify drug count unchanged but data updated
     assert get_db_count(db_session) == count_before

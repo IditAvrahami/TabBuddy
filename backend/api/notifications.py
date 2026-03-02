@@ -1,26 +1,23 @@
 import logging
-from datetime import UTC, date, datetime, timedelta
+from collections.abc import AsyncIterator
+from datetime import UTC, date, datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.models import DependencyType, DrugSchedule, NotificationOverride
-from backend.services.timeline_calculator import TimelineCalculator
+from backend.schemas import NotificationDto
+from backend.services.notification_scheduler import (
+    NotificationScheduler,
+    get_notification_scheduler,
+)
+from backend.services.rabbitmq_client import get_notifications_queue
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-class NotificationDto(BaseModel):
-    schedule_id: int
-    drug_id: int
-    drug_name: str
-    kind: str
-    amount_per_dose: int
-    dependency_type: str
-    scheduled_time: str = Field(..., description="ISO timestamp for notification time")
 
 
 class SnoozeResponse(BaseModel):
@@ -36,35 +33,109 @@ class DismissResponse(BaseModel):
 
 
 @router.get("/notifications")
-def get_notifications(db: Session = Depends(get_db)) -> list[NotificationDto]:
-    """Return notifications that are ready to show now.
+async def get_notifications(
+    db: Session = Depends(get_db),
+) -> list[NotificationDto]:
+    """Return notifications that are due within the current time window (DB-based)."""
+    now = datetime.now()
+    today = date.today()
 
-    This endpoint is designed for polling - it only returns notifications
-    that are due within a 5-minute window of the current time.
-    """
-    logger.info("GET /notifications - checking for notifications ready now")
+    window_start = now - timedelta(minutes=60)
+    window_end = now + timedelta(minutes=5)
 
-    # Use TimelineCalculator to get notifications ready now
-    calculator = TimelineCalculator(db)
-    timeline = calculator.calculate_daily_timeline(date.today())
+    schedules = (
+        db.query(DrugSchedule)
+        .filter(
+            DrugSchedule.is_active,
+            DrugSchedule.start_date <= today,
+            (DrugSchedule.end_date >= today) | (DrugSchedule.end_date.is_(None)),
+        )
+        .all()
+    )
 
-    # Convert to NotificationDto format
     notifications = []
-    for item in timeline:
-        notifications.append(
-            NotificationDto(
-                schedule_id=item.schedule_id,
-                drug_id=item.drug_id,
-                drug_name=item.drug_name,
-                kind=item.kind,
-                amount_per_dose=item.amount_per_dose,
-                dependency_type=item.dependency_type,
-                scheduled_time=item.scheduled_time.isoformat(),
+    for schedule in schedules:
+        override = (
+            db.query(NotificationOverride)
+            .filter(
+                NotificationOverride.schedule_id == schedule.id,
+                NotificationOverride.override_date == today,
             )
+            .order_by(NotificationOverride.id.desc())
+            .first()
         )
 
-    logger.info("GET /notifications count=%d", len(notifications))
+        if override and override.dismissed:
+            continue
+
+        if override and override.snoozed_until:
+            scheduled_time = override.snoozed_until
+        else:
+            try:
+                scheduled_time = calculate_drug_time_for_display(schedule, today)
+            except Exception:
+                continue
+
+        if window_start <= scheduled_time <= window_end:
+            notifications.append(
+                NotificationDto(
+                    schedule_id=schedule.id,
+                    drug_id=schedule.drug_id,
+                    drug_name=schedule.drug.name,
+                    kind=schedule.drug.kind,
+                    amount_per_dose=schedule.drug.amount_per_dose,
+                    dependency_type=schedule.dependency_type.value,
+                    scheduled_time=scheduled_time.isoformat(),
+                )
+            )
+
     return notifications
+
+
+@router.get("/notifications/stream")
+async def stream_notifications() -> StreamingResponse:
+    """Stream notifications via Server-Sent Events (SSE).
+
+    Consumes from RabbitMQ queue and streams notifications to clients in real-time.
+    Uses Pydantic models for validation and type safety.
+    """
+    logger.info("GET /notifications/stream - client connected")
+
+    async def event_generator() -> AsyncIterator[str]:
+        try:
+            queue = await get_notifications_queue()
+            async with queue.iterator() as queue_iter:
+                async for message in queue_iter:
+                    try:
+                        # Deserialize JSON to Pydantic object (validates)
+                        notification = NotificationDto.model_validate_json(
+                            message.body.decode()
+                        )
+
+                        # Serialize Pydantic object to JSON for SSE
+                        json_data = notification.model_dump_json()
+                        yield f"data: {json_data}\n\n"
+
+                        # Acknowledge message after successful delivery
+                        await message.ack()
+                        logger.info(
+                            f"Streamed notification for {notification.drug_name} "
+                            f"(schedule_id={notification.schedule_id})"
+                        )
+
+                    except ValidationError as e:
+                        # Handle invalid data
+                        logger.error(f"Invalid notification data: {e}")
+                        await message.nack(requeue=False)
+                    except Exception as e:
+                        logger.error(f"Error processing message: {e}", exc_info=True)
+                        await message.nack(requeue=True)
+
+        except Exception as e:
+            logger.error(f"Error in SSE stream: {e}", exc_info=True)
+            yield "data: {}\n\n"  # Send empty event to close connection
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 class SnoozeRequest(BaseModel):
@@ -86,9 +157,53 @@ def schedule_to_notification_dto(
     )
 
 
+def calculate_drug_time_for_display(
+    schedule: DrugSchedule, target_date: date
+) -> datetime:
+    """Calculate time for a drug based on its dependency type.
+
+    This is a simplified version for display purposes (e.g., in dismiss response).
+    For actual scheduling, use NotificationScheduler._calculate_drug_time.
+    """
+    if schedule.dependency_type == DependencyType.ABSOLUTE:
+        if schedule.absolute_time is None:
+            # Fallback for display
+            return datetime.combine(target_date, time(9, 0))
+        return datetime.combine(target_date, schedule.absolute_time)
+
+    elif schedule.dependency_type == DependencyType.MEAL:
+        if schedule.meal_schedule is None or schedule.meal_offset_minutes is None:
+            return datetime.combine(target_date, time(9, 0))
+        meal_time = schedule.meal_schedule.base_time
+        base_time = datetime.combine(target_date, meal_time)
+        # meal_offset_minutes is signed: negative = before, positive = after
+        return base_time + timedelta(minutes=schedule.meal_offset_minutes)
+
+    elif schedule.dependency_type == DependencyType.DRUG:
+        if (
+            schedule.depends_on_schedule_id is None
+            or schedule.depends_on_schedule is None
+        ):
+            return datetime.combine(target_date, time(9, 0))
+        # Recursively calculate dependent schedule time
+        dependent_time = calculate_drug_time_for_display(
+            schedule.depends_on_schedule, target_date
+        )
+        if schedule.drug_offset_minutes is None:
+            return dependent_time
+        return dependent_time + timedelta(minutes=schedule.drug_offset_minutes)
+
+    else:
+        # Unknown dependency type: use default time
+        return datetime.combine(target_date, time(9, 0))  # type: ignore[unreachable]
+
+
 @router.post("/notifications/{schedule_id}/snooze")
-def snooze_notification(
-    schedule_id: int, payload: SnoozeRequest, db: Session = Depends(get_db)
+async def snooze_notification(
+    schedule_id: int,
+    payload: SnoozeRequest,
+    db: Session = Depends(get_db),
+    scheduler: NotificationScheduler = Depends(get_notification_scheduler),
 ) -> SnoozeResponse:
     logger.info(
         "POST /notifications/%d/snooze - minutes=%d", schedule_id, payload.minutes
@@ -177,9 +292,11 @@ def snooze_notification(
         db.add(ov)
         logger.info("Created new override in database")
 
-    db.commit()
+    # Update Redis ZSET with new snoozed time (critical - must succeed)
+    await scheduler.reschedule_notification(schedule_id, snoozed_until, today)
+
     logger.info(
-        "Snooze saved successfully to database: schedule_id=%d, snoozed_until=%s",
+        "Snooze saved successfully: schedule_id=%d, snoozed_until=%s",
         schedule_id,
         snoozed_until.isoformat(),
     )
@@ -192,8 +309,10 @@ def snooze_notification(
 
 
 @router.post("/notifications/{schedule_id}/dismiss")
-def dismiss_notification(
-    schedule_id: int, db: Session = Depends(get_db)
+async def dismiss_notification(
+    schedule_id: int,
+    db: Session = Depends(get_db),
+    scheduler: NotificationScheduler = Depends(get_notification_scheduler),
 ) -> DismissResponse:
     schedule = (
         db.query(DrugSchedule)
@@ -220,9 +339,8 @@ def dismiss_notification(
     if existing_override and existing_override.snoozed_until:
         scheduled_time = existing_override.snoozed_until
     else:
-        # Calculate using TimelineCalculator's logic
-        calculator = TimelineCalculator(db)
-        scheduled_time = calculator._calculate_drug_time(schedule, today, {})
+        # Calculate using helper function
+        scheduled_time = calculate_drug_time_for_display(schedule, today)
 
     if existing_override:
         # Update existing override to dismissed
@@ -236,7 +354,8 @@ def dismiss_notification(
         )
         db.add(ov)
 
-    db.commit()
+    # Remove from Redis ZSET (critical - must succeed)
+    await scheduler.dismiss_notification(schedule_id, today)
 
     # Create notification DTO
     notification = schedule_to_notification_dto(schedule, scheduled_time)

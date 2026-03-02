@@ -1,0 +1,4 @@
+redis
+hiredis
+aio-pika
+pydantic

@@ -18,7 +18,6 @@ const DependencySelector: React.FC<DependencySelectorProps> = ({ value, onChange
       onChange={onChange}
       required
     >
-      <Option value="independent">Independent (no dependency)</Option>
       <Option value="absolute">Absolute time</Option>
       <Option value="meal">Depends on meal</Option>
       <Option value="drug">Depends on another drug</Option>

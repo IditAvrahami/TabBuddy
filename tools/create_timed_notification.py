@@ -21,7 +21,6 @@ def create_timed_notification():
         "name": f"Timed Test {now.strftime('%H%M')}",
         "kind": "pill",
         "amount_per_dose": 1,
-        "frequency_per_day": 1,
         "start_date": TODAY,
         "end_date": TODAY,
         "dependency_type": "absolute",

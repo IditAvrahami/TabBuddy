@@ -27,14 +27,12 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
     name: editingDrug?.name || '',
     type: (editingDrug?.kind || 'pill') as 'pill' | 'liquid',
     amount: editingDrug?.amount_per_dose?.toString() || '',
-    frequencyPerDay: editingDrug?.frequency_per_day?.toString() || '',
     startDate: editingDrug?.start_date || '',
     endDate: editingDrug?.end_date || '',
-    dependencyType: (editingDrug?.dependency_type || 'independent') as DependencyType,
+    dependencyType: (editingDrug?.dependency_type || 'absolute') as DependencyType,
     absoluteTime: editingDrug?.absolute_time ? convertUTCToLocalTime(editingDrug.absolute_time) : '',
     mealScheduleId: editingDrug?.meal_schedule_id?.toString() || '',
     mealOffsetMinutes: editingDrug?.meal_offset_minutes?.toString() || '',
-    mealTiming: editingDrug?.meal_timing || 'before',
     dependsOnDrugId: editingDrug?.depends_on_drug_id?.toString() || '',
     drugOffsetMinutes: editingDrug?.drug_offset_minutes?.toString() || '',
   });
@@ -65,7 +63,6 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.amount || !form.startDate) return;
-    if (form.dependencyType !== 'absolute' && !form.frequencyPerDay) return;
 
     const convertedTime = form.absoluteTime ? convertLocalTimeToUTC(form.absoluteTime) : undefined;
     console.log('🔧 Timezone Debug:');
@@ -77,14 +74,12 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
       name: form.name,
       kind: form.type,
       amount_per_dose: parseInt(form.amount, 10),
-      frequency_per_day: form.dependencyType === 'absolute' ? 1 : parseInt(form.frequencyPerDay, 10),
       start_date: form.startDate,
       end_date: form.endDate || undefined,
       dependency_type: form.dependencyType,
       absolute_time: convertedTime,
       meal_schedule_id: form.mealScheduleId ? parseInt(form.mealScheduleId, 10) : undefined,
       meal_offset_minutes: form.mealOffsetMinutes ? parseInt(form.mealOffsetMinutes, 10) : undefined,
-      meal_timing: form.mealTiming as 'before' | 'after',
       depends_on_drug_id: form.dependsOnDrugId ? parseInt(form.dependsOnDrugId, 10) : undefined,
       drug_offset_minutes: form.drugOffsetMinutes ? parseInt(form.drugOffsetMinutes, 10) : undefined,
     };
@@ -94,9 +89,9 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
     try {
       await onSubmit(payload);
       setForm({
-        name: '', type: 'pill', amount: '', frequencyPerDay: '', startDate: '', endDate: '',
-        dependencyType: 'independent', absoluteTime: '', mealScheduleId: '', mealOffsetMinutes: '',
-        mealTiming: 'before', dependsOnDrugId: '', drugOffsetMinutes: ''
+        name: '', type: 'pill', amount: '', startDate: '', endDate: '',
+        dependencyType: 'absolute', absoluteTime: '', mealScheduleId: '', mealOffsetMinutes: '',
+        dependsOnDrugId: '', drugOffsetMinutes: ''
       });
     } catch (err) {
       // Error handling is done in parent component
@@ -169,25 +164,6 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
           onChange={handleChange}
         />
 
-        {form.dependencyType !== 'absolute' && (
-          <FormField
-            label="Frequency per Day"
-            type="select"
-            name="frequencyPerDay"
-            value={form.frequencyPerDay}
-            onChange={handleChange}
-            required
-          >
-            <Option value="">Select frequency</Option>
-            <Option value="1">1 time per day</Option>
-            <Option value="2">2 times per day</Option>
-            <Option value="3">3 times per day</Option>
-            <Option value="4">4 times per day</Option>
-            <Option value="5">5 times per day</Option>
-            <Option value="6">6 times per day</Option>
-          </FormField>
-        )}
-
         <DependencySelector
           value={form.dependencyType}
           onChange={handleChange}
@@ -204,7 +180,6 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
           <MealDependencyFields
             mealSchedules={mealSchedules}
             mealScheduleId={form.mealScheduleId}
-            mealTiming={form.mealTiming}
             mealOffsetMinutes={form.mealOffsetMinutes}
             onChange={handleChange}
           />

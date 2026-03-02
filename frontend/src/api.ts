@@ -1,19 +1,17 @@
 export type DrugKind = 'pill' | 'liquid';
-export type DependencyType = 'absolute' | 'meal' | 'drug' | 'independent';
+export type DependencyType = 'absolute' | 'meal' | 'drug';
 
 export interface DrugDto {
 	id: number;
 	name: string;
 	kind: DrugKind;
 	amount_per_dose: number;
-	frequency_per_day: number;
 	start_date: string; // YYYY-MM-DD format
 	end_date?: string; // YYYY-MM-DD format
 	dependency_type: DependencyType;
 	absolute_time?: string; // HH:MM format
 	meal_schedule_id?: number;
-	meal_offset_minutes?: number;
-	meal_timing?: 'before' | 'after';
+	meal_offset_minutes?: number; // Signed: negative = before, positive = after
 	depends_on_drug_id?: number;
 	drug_offset_minutes?: number;
 	is_active: boolean;
@@ -24,14 +22,12 @@ export interface DrugCreateDto {
   name: string;
   kind: DrugKind;
   amount_per_dose: number;
-  frequency_per_day: number;
   start_date: string; // YYYY-MM-DD format
   end_date?: string; // YYYY-MM-DD format
   dependency_type: DependencyType;
   absolute_time?: string; // HH:MM format
   meal_schedule_id?: number;
-  meal_offset_minutes?: number;
-  meal_timing?: 'before' | 'after';
+  meal_offset_minutes?: number; // Signed: negative = before, positive = after
   depends_on_drug_id?: number;
   drug_offset_minutes?: number;
 }

@@ -73,12 +73,16 @@ def test_client(
         session = test_session_factory()
         try:
             yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
         finally:
             session.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    client = TestClient(app)
-    yield client
+    with TestClient(app) as client:
+        yield client
     app.dependency_overrides.clear()
 
 
