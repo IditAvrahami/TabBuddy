@@ -1,19 +1,15 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-# Copy requirements
-COPY worker/requirements.txt .
+COPY worker/pyproject.toml worker/uv.lock /app/worker/
+RUN cd /app/worker && uv sync --frozen --no-install-project
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy worker code
 COPY worker/ ./worker/
 COPY backend/ ./backend/
 
-# Set Python path
 ENV PYTHONPATH=/app
 
-# Run worker
-CMD ["python", "-m", "worker.main"]
+CMD ["uv", "run", "--project", "/app/worker", "python", "-m", "worker.main"]
