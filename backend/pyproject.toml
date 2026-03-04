@@ -1,3 +1,33 @@
+[project]
+name = "tabbuddy-backend"
+version = "0.1.0"
+description = "TabBuddy medication scheduling backend"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "pydantic",
+    "uvicorn",
+    "sqlalchemy",
+    "psycopg2-binary",
+    "alembic",
+    "redis",
+    "hiredis",
+    "aio-pika",
+    "types-redis",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "httpx",
+    "pgcli",
+    "pre-commit",
+    "black",
+    "ruff",
+    "mypy",
+    "sqlalchemy2-stubs",
+]
+
 [tool.black]
 line-length = 88
 target-version = ['py39', 'py310', 'py311', 'py312']

@@ -48,12 +48,13 @@ TabBuddy helps patients and caregivers coordinate complex medication plans. The 
 - Backend: FastAPI, Pydantic, SQLAlchemy, Alembic, PostgreSQL, Redis, RabbitMQ, Uvicorn.
 - Worker: Async Python service using `aio-pika` and `redis.asyncio` for event processing.
 - Frontend: React 19, TypeScript 4.9, react-scripts 5, CSS modules, Server-Sent Events (SSE).
-- Tooling: pytest, httpx, Testing Library, Docker, Ruff, Black, Mypy, ESLint.
+- Tooling: pytest, httpx, Testing Library, Docker, uv, Ruff, Black, Mypy, ESLint.
 
 ## Getting Started
 
 ### Prerequisites
 - Python 3.12+
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
 - Node.js 18+ and npm
 - PostgreSQL 16 (or use Docker Compose)
 
@@ -65,9 +66,8 @@ cd TabBuddy
 
 #### Backend setup
 ```bash
-python -m venv .venv
-.venv\Scripts\activate  # On Windows; use source .venv/bin/activate on macOS/Linux
-pip install -r backend/requirements.txt
+cd backend
+uv sync
 ```
 
 Set your database connection (matches docker-compose defaults):
@@ -78,13 +78,13 @@ set DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5433/tabbuddy
 
 Run migrations if you are not letting FastAPI auto-create tables:
 ```bash
-cd backend
-alembic upgrade head
+uv run alembic upgrade head
 ```
 
-Start the API:
+Start the API (from the project root):
 ```bash
-uvicorn backend.main:app --reload --port 8000
+cd ..
+uv run --project backend uvicorn backend.main:app --reload --port 8000
 ```
 
 #### Frontend setup
