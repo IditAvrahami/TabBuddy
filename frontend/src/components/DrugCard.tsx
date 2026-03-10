@@ -33,9 +33,7 @@ const DrugCard: React.FC<DrugCardProps> = ({ drug, onEdit, onDelete }) => {
   };
 
   const handleDelete = () => {
-    if (window.confirm(`Are you sure you want to delete "${drug.name}"?`)) {
-      onDelete(drug.id);
-    }
+    onDelete(drug.id);
   };
 
   return (

@@ -1,5 +1,5 @@
 import logging
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
@@ -74,6 +74,22 @@ class DrugResponse(BaseModel):
     @field_serializer("absolute_time")
     def serialize_time(self, value: time | None) -> str | None:
         return value.isoformat() if value else None
+
+
+class DependentSchedulePreview(BaseModel):
+    schedule_id: int
+    drug_name: str
+    current_depends_on_name: str
+    current_offset_minutes: int
+    new_dependency_type: str
+    new_depends_on_name: str | None
+    new_offset_minutes: int
+    new_absolute_time: str | None
+
+
+class DependentsResponse(BaseModel):
+    has_dependents: bool
+    dependents: list[DependentSchedulePreview]
 
 
 def schedule_to_response(schedule: DrugSchedule) -> DrugResponse:
@@ -361,6 +377,135 @@ async def update_drug(
     return schedule_to_response(schedule)
 
 
+@router.get("/drug-id/{drug_id}/dependents")
+def get_schedule_dependents(
+    drug_id: int,
+    db: Session = Depends(get_db),
+) -> DependentsResponse:
+    logger.info("GET /drug-id/%d/dependents", drug_id)
+
+    schedule = db.query(DrugSchedule).filter(DrugSchedule.id == drug_id).first()
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Drug schedule not found")
+
+    previews = compute_rewire_preview(db, schedule)
+    return DependentsResponse(
+        has_dependents=len(previews) > 0,
+        dependents=[DependentSchedulePreview(**p) for p in previews],
+    )
+
+
+def rewire_and_delete_schedule(
+    db: Session, schedule: DrugSchedule
+) -> list[DrugSchedule]:
+    """Rewire children of the schedule being deleted, then delete it.
+
+    Returns the list of rewired child schedules so the caller can
+    reschedule their notifications.
+    """
+    children = (
+        db.query(DrugSchedule)
+        .filter(DrugSchedule.depends_on_schedule_id == schedule.id)
+        .all()
+    )
+
+    parent_schedule_id = schedule.depends_on_schedule_id
+    parent_offset = schedule.drug_offset_minutes or 0
+
+    for child in children:
+        child_offset = child.drug_offset_minutes or 0
+
+        if parent_schedule_id is not None:
+            child.depends_on_schedule_id = parent_schedule_id
+            child.drug_offset_minutes = child_offset + parent_offset
+        elif schedule.dependency_type == DependencyType.ABSOLUTE:
+            abs_time = schedule.absolute_time
+            if abs_time is None:
+                raise ValueError("ABSOLUTE schedule is missing absolute_time")
+            base_minutes = abs_time.hour * 60 + abs_time.minute
+            total = base_minutes + child_offset
+            child.dependency_type = DependencyType.ABSOLUTE
+            child.depends_on_schedule_id = None
+            child.drug_offset_minutes = None
+            child.absolute_time = time(total // 60, total % 60)
+        elif schedule.dependency_type == DependencyType.MEAL:
+            child.dependency_type = DependencyType.MEAL
+            child.depends_on_schedule_id = None
+            child.drug_offset_minutes = None
+            child.meal_schedule_id = schedule.meal_schedule_id
+            child.meal_offset_minutes = (
+                schedule.meal_offset_minutes or 0
+            ) + child_offset
+
+    db.delete(schedule)
+    db.delete(schedule.drug)
+
+    return children
+
+
+def compute_rewire_preview(
+    db: Session, schedule: DrugSchedule
+) -> list[dict[str, object]]:
+    """Compute what would happen to children if this schedule were deleted."""
+    children = (
+        db.query(DrugSchedule)
+        .filter(DrugSchedule.depends_on_schedule_id == schedule.id)
+        .all()
+    )
+
+    parent_schedule_id = schedule.depends_on_schedule_id
+    parent_offset = schedule.drug_offset_minutes or 0
+    previews: list[dict[str, object]] = []
+
+    for child in children:
+        child_offset = child.drug_offset_minutes or 0
+        preview: dict[str, object] = {
+            "schedule_id": child.id,
+            "drug_name": child.drug.name,
+            "current_depends_on_name": schedule.drug.name,
+            "current_offset_minutes": child_offset,
+        }
+
+        if parent_schedule_id is not None:
+            parent = (
+                db.query(DrugSchedule)
+                .filter(DrugSchedule.id == parent_schedule_id)
+                .first()
+            )
+            preview["new_dependency_type"] = "drug"
+            preview["new_depends_on_name"] = parent.drug.name if parent else None
+            preview["new_offset_minutes"] = child_offset + parent_offset
+            preview["new_absolute_time"] = None
+        elif schedule.dependency_type == DependencyType.ABSOLUTE:
+            abs_time = schedule.absolute_time
+            if abs_time is None:
+                raise ValueError("ABSOLUTE schedule is missing absolute_time")
+            base_minutes = abs_time.hour * 60 + abs_time.minute
+            total = base_minutes + child_offset
+            preview["new_dependency_type"] = "absolute"
+            preview["new_depends_on_name"] = None
+            preview["new_offset_minutes"] = 0
+            preview["new_absolute_time"] = f"{total // 60:02d}:{total % 60:02d}"
+        elif schedule.dependency_type == DependencyType.MEAL:
+            preview["new_dependency_type"] = "meal"
+            preview["new_depends_on_name"] = (
+                schedule.meal_schedule.meal_name if schedule.meal_schedule else None
+            )
+            preview["new_offset_minutes"] = (
+                schedule.meal_offset_minutes or 0
+            ) + child_offset
+            preview["new_absolute_time"] = None
+        else:
+            preview["new_dependency_type"] = "absolute"
+            preview["new_depends_on_name"] = None
+            preview["new_offset_minutes"] = 0
+            preview["new_absolute_time"] = None
+
+        previews.append(preview)
+
+    return previews
+
+
 @router.delete("/drug-id/{drug_id}")
 async def delete_drug(
     drug_id: int,
@@ -374,23 +519,18 @@ async def delete_drug(
         logger.warning("DELETE /drug schedule not found id=%d", drug_id)
         raise HTTPException(status_code=404, detail="Drug schedule not found")
 
-    # Create response before deleting
     response = schedule_to_response(schedule)
 
-    # Unschedule notifications from Redis (critical - must succeed)
-    # Unschedule for today and future dates
-    from datetime import date, timedelta
-
     today = date.today()
-    # Unschedule for the next 30 days to be safe
     for i in range(30):
         target_date = today + timedelta(days=i)
         await scheduler.unschedule_notification(schedule.id, target_date)
 
-    # Delete the schedule and its drug (for compatibility with tests expecting row removal)
-    db.delete(schedule)
-    # Also delete the drug row
-    db.delete(schedule.drug)
+    rewired_children = rewire_and_delete_schedule(db, schedule)
+    db.commit()
+
+    for child in rewired_children:
+        await scheduler.reschedule_schedule(child.id)
 
     logger.info("DELETE /drug/%d success", drug_id)
     return response

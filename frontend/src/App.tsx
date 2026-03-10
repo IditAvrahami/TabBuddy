@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
-import { api, type DrugDto, type DrugCreateDto, type NotificationDto } from './api';
+import { api, type DrugDto, type DrugCreateDto, type NotificationDto, type DependentSchedulePreview } from './api';
 import Container from './components/primitives/Container';
 import Navbar from './components/Navbar';
 import DrugList from './components/DrugList';
 import DrugForm from './components/DrugForm';
 import Settings from './components/Settings';
 import ReminderModal from './components/ReminderModal';
+import DeleteConfirmModal from './components/DeleteConfirmModal';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'drugs' | 'settings'>('drugs');
@@ -15,6 +16,13 @@ function App() {
   const [drugs, setDrugs] = useState<DrugDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Delete confirmation state
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    drugId: number;
+    drugName: string;
+    dependents: DependentSchedulePreview[];
+  } | null>(null);
 
   // Notification state
   const [activeNotification, setActiveNotification] = useState<NotificationDto | null>(null);
@@ -183,6 +191,20 @@ function App() {
 
   const handleDeleteDrug = async (drugId: number) => {
     try {
+      setError(null);
+      const drug = drugs.find(d => d.id === drugId);
+      const drugName = drug?.name || 'this drug';
+
+      const resp = await api.getDrugDependents(drugId);
+      setDeleteConfirm({ drugId, drugName, dependents: resp.dependents });
+    } catch (err: any) {
+      const errorMessage = err?.message || err?.toString() || 'Failed to delete drug';
+      setError(errorMessage);
+    }
+  };
+
+  const executeDelete = async (drugId: number) => {
+    try {
       setLoading(true);
       setError(null);
       await api.deleteDrug(drugId);
@@ -192,6 +214,7 @@ function App() {
       setError(errorMessage);
     } finally {
       setLoading(false);
+      setDeleteConfirm(null);
     }
   };
 
@@ -242,6 +265,14 @@ function App() {
         onSnooze={handleSnooze}
         onDismiss={handleDismiss}
         onClose={closeNotification}
+      />
+
+      <DeleteConfirmModal
+        visible={!!deleteConfirm}
+        drugName={deleteConfirm?.drugName || ''}
+        dependents={deleteConfirm?.dependents || []}
+        onConfirm={() => deleteConfirm && executeDelete(deleteConfirm.drugId)}
+        onCancel={() => setDeleteConfirm(null)}
       />
     </Container>
   );
