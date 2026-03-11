@@ -436,6 +436,11 @@ def rewire_and_delete_schedule(
             child.meal_offset_minutes = (
                 schedule.meal_offset_minutes or 0
             ) + child_offset
+        else:
+            child.dependency_type = DependencyType.ABSOLUTE
+            child.depends_on_schedule_id = None
+            child.drug_offset_minutes = None
+            child.absolute_time = time(0, 0)
 
     db.delete(schedule)
     db.delete(schedule.drug)
