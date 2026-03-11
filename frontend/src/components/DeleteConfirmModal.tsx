@@ -62,7 +62,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             <Container key={dep.schedule_id} className="delete-confirm-dep-item">
               <Text variant="strong">{dep.drug_name}</Text>
               <Text variant="span" className="delete-confirm-current">
-                Currently {dep.current_offset_minutes} min after {dep.current_depends_on_name}
+                Currently {Math.abs(dep.current_offset_minutes)} min {dep.current_offset_minutes < 0 ? 'before' : 'after'} {dep.current_depends_on_name}
               </Text>
               <Text variant="span" className="delete-confirm-arrow">
                 &rarr;

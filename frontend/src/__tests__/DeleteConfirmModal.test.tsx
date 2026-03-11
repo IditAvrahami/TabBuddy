@@ -101,6 +101,48 @@ describe('DeleteConfirmModal', () => {
     expect(mockCancel).toHaveBeenCalledTimes(1);
   });
 
+  // -- current timing direction tests --
+
+  it('shows "after" for positive current_offset_minutes', () => {
+    const dep: DependentSchedulePreview = {
+      ...baseDep,
+      current_offset_minutes: 30,
+      current_depends_on_name: 'ParentDrug',
+    };
+
+    render(
+      <DeleteConfirmModal
+        visible={true}
+        drugName="ParentDrug"
+        dependents={[dep]}
+        onConfirm={mockConfirm}
+        onCancel={mockCancel}
+      />
+    );
+
+    expect(screen.getByText(/Currently 30 min after ParentDrug/)).toBeInTheDocument();
+  });
+
+  it('shows "before" for negative current_offset_minutes', () => {
+    const dep: DependentSchedulePreview = {
+      ...baseDep,
+      current_offset_minutes: -15,
+      current_depends_on_name: 'ParentDrug',
+    };
+
+    render(
+      <DeleteConfirmModal
+        visible={true}
+        drugName="ParentDrug"
+        dependents={[dep]}
+        onConfirm={mockConfirm}
+        onCancel={mockCancel}
+      />
+    );
+
+    expect(screen.getByText(/Currently 15 min before ParentDrug/)).toBeInTheDocument();
+  });
+
   // -- formatNewTiming direction tests --
 
   it('shows "after" for positive drug offset', () => {
