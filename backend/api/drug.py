@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -395,6 +396,68 @@ def get_schedule_dependents(
     )
 
 
+@dataclass
+class _RewireResult:
+    """The new scheduling fields a child should receive when its parent is deleted."""
+
+    dependency_type: str
+    depends_on_schedule_id: int | None
+    drug_offset_minutes: int | None
+    absolute_time: time | None
+    meal_schedule_id: int | None
+    meal_offset_minutes: int | None
+
+
+def _compute_child_rewire(schedule: DrugSchedule, child_offset: int) -> _RewireResult:
+    """Determine how a single child should be rewired when *schedule* is deleted."""
+    parent_schedule_id = schedule.depends_on_schedule_id
+    parent_offset = schedule.drug_offset_minutes or 0
+
+    if parent_schedule_id is not None:
+        return _RewireResult(
+            dependency_type="drug",
+            depends_on_schedule_id=parent_schedule_id,
+            drug_offset_minutes=child_offset + parent_offset,
+            absolute_time=None,
+            meal_schedule_id=None,
+            meal_offset_minutes=None,
+        )
+
+    if schedule.dependency_type == DependencyType.ABSOLUTE:
+        abs_time = schedule.absolute_time
+        if abs_time is None:
+            raise ValueError("ABSOLUTE schedule is missing absolute_time")
+        base_minutes = abs_time.hour * 60 + abs_time.minute
+        total = (base_minutes + child_offset) % 1440
+        return _RewireResult(
+            dependency_type="absolute",
+            depends_on_schedule_id=None,
+            drug_offset_minutes=None,
+            absolute_time=time(total // 60, total % 60),
+            meal_schedule_id=None,
+            meal_offset_minutes=None,
+        )
+
+    if schedule.dependency_type == DependencyType.MEAL:
+        return _RewireResult(
+            dependency_type="meal",
+            depends_on_schedule_id=None,
+            drug_offset_minutes=None,
+            absolute_time=None,
+            meal_schedule_id=schedule.meal_schedule_id,
+            meal_offset_minutes=(schedule.meal_offset_minutes or 0) + child_offset,
+        )
+
+    return _RewireResult(
+        dependency_type="absolute",
+        depends_on_schedule_id=None,
+        drug_offset_minutes=None,
+        absolute_time=time(0, 0),
+        meal_schedule_id=None,
+        meal_offset_minutes=None,
+    )
+
+
 def rewire_and_delete_schedule(
     db: Session, schedule: DrugSchedule
 ) -> list[DrugSchedule]:
@@ -409,38 +472,14 @@ def rewire_and_delete_schedule(
         .all()
     )
 
-    parent_schedule_id = schedule.depends_on_schedule_id
-    parent_offset = schedule.drug_offset_minutes or 0
-
     for child in children:
-        child_offset = child.drug_offset_minutes or 0
-
-        if parent_schedule_id is not None:
-            child.depends_on_schedule_id = parent_schedule_id
-            child.drug_offset_minutes = child_offset + parent_offset
-        elif schedule.dependency_type == DependencyType.ABSOLUTE:
-            abs_time = schedule.absolute_time
-            if abs_time is None:
-                raise ValueError("ABSOLUTE schedule is missing absolute_time")
-            base_minutes = abs_time.hour * 60 + abs_time.minute
-            total = (base_minutes + child_offset) % 1440
-            child.dependency_type = DependencyType.ABSOLUTE
-            child.depends_on_schedule_id = None
-            child.drug_offset_minutes = None
-            child.absolute_time = time(total // 60, total % 60)
-        elif schedule.dependency_type == DependencyType.MEAL:
-            child.dependency_type = DependencyType.MEAL
-            child.depends_on_schedule_id = None
-            child.drug_offset_minutes = None
-            child.meal_schedule_id = schedule.meal_schedule_id
-            child.meal_offset_minutes = (
-                schedule.meal_offset_minutes or 0
-            ) + child_offset
-        else:
-            child.dependency_type = DependencyType.ABSOLUTE
-            child.depends_on_schedule_id = None
-            child.drug_offset_minutes = None
-            child.absolute_time = time(0, 0)
+        result = _compute_child_rewire(schedule, child.drug_offset_minutes or 0)
+        child.dependency_type = DependencyType(result.dependency_type)
+        child.depends_on_schedule_id = result.depends_on_schedule_id
+        child.drug_offset_minutes = result.drug_offset_minutes
+        child.absolute_time = result.absolute_time
+        child.meal_schedule_id = result.meal_schedule_id
+        child.meal_offset_minutes = result.meal_offset_minutes
 
     db.delete(schedule)
     db.delete(schedule.drug)
@@ -458,65 +497,46 @@ def compute_rewire_preview(
         .all()
     )
 
-    parent_schedule_id = schedule.depends_on_schedule_id
-    parent_offset = schedule.drug_offset_minutes or 0
     previews: list[DependentSchedulePreview] = []
 
     for child in children:
         child_offset = child.drug_offset_minutes or 0
-        common = {
-            "schedule_id": child.id,
-            "drug_name": child.drug.name,
-            "current_depends_on_name": schedule.drug.name,
-            "current_offset_minutes": child_offset,
-        }
+        result = _compute_child_rewire(schedule, child_offset)
 
-        if parent_schedule_id is not None:
+        new_depends_on_name: str | None = None
+        if result.depends_on_schedule_id is not None:
             parent = (
                 db.query(DrugSchedule)
-                .filter(DrugSchedule.id == parent_schedule_id)
+                .filter(DrugSchedule.id == result.depends_on_schedule_id)
                 .first()
             )
-            preview = DependentSchedulePreview(
-                **common,
-                new_dependency_type="drug",
-                new_depends_on_name=parent.drug.name if parent else None,
-                new_offset_minutes=child_offset + parent_offset,
-                new_absolute_time=None,
-            )
-        elif schedule.dependency_type == DependencyType.ABSOLUTE:
-            abs_time = schedule.absolute_time
-            if abs_time is None:
-                raise ValueError("ABSOLUTE schedule is missing absolute_time")
-            base_minutes = abs_time.hour * 60 + abs_time.minute
-            total = (base_minutes + child_offset) % 1440
-            preview = DependentSchedulePreview(
-                **common,
-                new_dependency_type="absolute",
-                new_depends_on_name=None,
-                new_offset_minutes=0,
-                new_absolute_time=f"{total // 60:02d}:{total % 60:02d}",
-            )
-        elif schedule.dependency_type == DependencyType.MEAL:
-            preview = DependentSchedulePreview(
-                **common,
-                new_dependency_type="meal",
-                new_depends_on_name=(
-                    schedule.meal_schedule.meal_name if schedule.meal_schedule else None
-                ),
-                new_offset_minutes=(schedule.meal_offset_minutes or 0) + child_offset,
-                new_absolute_time=None,
-            )
-        else:
-            preview = DependentSchedulePreview(
-                **common,
-                new_dependency_type="absolute",
-                new_depends_on_name=None,
-                new_offset_minutes=0,
-                new_absolute_time=None,
-            )
+            new_depends_on_name = parent.drug.name if parent else None
+        elif result.dependency_type == "meal" and schedule.meal_schedule:
+            new_depends_on_name = schedule.meal_schedule.meal_name
 
-        previews.append(preview)
+        if result.drug_offset_minutes is not None:
+            new_offset = result.drug_offset_minutes
+        elif result.meal_offset_minutes is not None:
+            new_offset = result.meal_offset_minutes
+        else:
+            new_offset = 0
+
+        previews.append(
+            DependentSchedulePreview(
+                schedule_id=child.id,
+                drug_name=child.drug.name,
+                current_depends_on_name=schedule.drug.name,
+                current_offset_minutes=child_offset,
+                new_dependency_type=result.dependency_type,
+                new_depends_on_name=new_depends_on_name,
+                new_offset_minutes=new_offset,
+                new_absolute_time=(
+                    f"{result.absolute_time.hour:02d}:{result.absolute_time.minute:02d}"
+                    if result.absolute_time
+                    else None
+                ),
+            )
+        )
 
     return previews
 
@@ -542,7 +562,7 @@ async def delete_drug(
         await scheduler.unschedule_notification(schedule.id, target_date)
 
     rewired_children = rewire_and_delete_schedule(db, schedule)
-    db.commit()
+    db.flush()
 
     for child in rewired_children:
         await scheduler.reschedule_schedule(child.id)

@@ -25,7 +25,8 @@ function formatNewTiming(dep: DependentSchedulePreview): string {
     return `${Math.abs(dep.new_offset_minutes)} min ${direction} ${dep.new_depends_on_name}`;
   }
   if (dep.new_dependency_type === 'drug' && dep.new_depends_on_name) {
-    return `${dep.new_offset_minutes} min after ${dep.new_depends_on_name}`;
+    const direction = dep.new_offset_minutes < 0 ? 'before' : 'after';
+    return `${Math.abs(dep.new_offset_minutes)} min ${direction} ${dep.new_depends_on_name}`;
   }
   return 'Independent schedule';
 }

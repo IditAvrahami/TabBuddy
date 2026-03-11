@@ -32,7 +32,7 @@ def test_db_url() -> str:
 @pytest.fixture(scope="session")
 def test_engine(test_db_url: str) -> Engine:
     """Create test database engine"""
-    engine = create_engine(test_db_url)
+    engine = create_engine(test_db_url, pool_pre_ping=True)
     return engine
 
 
@@ -44,11 +44,10 @@ def test_session_factory(test_engine: Engine) -> sessionmaker[Session]:
 
 @pytest.fixture(autouse=True)
 def setup_test_db(test_engine: Engine) -> Generator[None, None, None]:
-    """Set up test database tables"""
+    """Set up test database tables (fresh for every test)."""
     Base.metadata.drop_all(bind=test_engine)
     Base.metadata.create_all(bind=test_engine)
     yield
-    Base.metadata.drop_all(bind=test_engine)
 
 
 @pytest.fixture
