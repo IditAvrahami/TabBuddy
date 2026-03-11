@@ -12,7 +12,7 @@ export interface DrugDto {
 	absolute_time?: string; // HH:MM format
 	meal_schedule_id?: number;
 	meal_offset_minutes?: number; // Signed: negative = before, positive = after
-	depends_on_drug_id?: number;
+	depends_on_schedule_id?: number;
 	drug_offset_minutes?: number;
 	is_active: boolean;
 	created_at: string;
@@ -28,7 +28,7 @@ export interface DrugCreateDto {
   absolute_time?: string; // HH:MM format
   meal_schedule_id?: number;
   meal_offset_minutes?: number; // Signed: negative = before, positive = after
-  depends_on_drug_id?: number;
+  depends_on_schedule_id?: number;
   drug_offset_minutes?: number;
 }
 
@@ -46,6 +46,22 @@ export interface NotificationDto {
 export interface SnoozeRequest {
   minutes: number;
   day: string; // YYYY-MM-DD format
+}
+
+export interface DependentSchedulePreview {
+	schedule_id: number;
+	drug_name: string;
+	current_depends_on_name: string;
+	current_offset_minutes: number;
+	new_dependency_type: DependencyType;
+	new_depends_on_name: string | null;
+	new_offset_minutes: number;
+	new_absolute_time: string | null;
+}
+
+export interface DependentsResponse {
+	has_dependents: boolean;
+	dependents: DependentSchedulePreview[];
 }
 
 export interface MealScheduleDto {
@@ -96,6 +112,7 @@ export const api = {
 	listDrugs: () => http<DrugDto[]>('/drug'),
 	updateDrug: (drugId: number, drug: DrugCreateDto) => http<{ message: string }>(`/drug-id/${drugId}`, { method: 'PUT', body: JSON.stringify(drug) }),
 	deleteDrug: (drugId: number) => http<{ message: string }>(`/drug-id/${drugId}`, { method: 'DELETE' }),
+	getDrugDependents: (drugId: number) => http<DependentsResponse>(`/drug-id/${drugId}/dependents`),
 
 	// Meal schedule endpoints
 	getMealSchedules: () => http<MealScheduleDto[]>('/meal-schedules'),

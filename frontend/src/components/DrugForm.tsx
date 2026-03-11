@@ -33,7 +33,7 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
     absoluteTime: editingDrug?.absolute_time ? convertUTCToLocalTime(editingDrug.absolute_time) : '',
     mealScheduleId: editingDrug?.meal_schedule_id?.toString() || '',
     mealOffsetMinutes: editingDrug?.meal_offset_minutes?.toString() || '',
-    dependsOnDrugId: editingDrug?.depends_on_drug_id?.toString() || '',
+    dependsOnDrugId: editingDrug?.depends_on_schedule_id?.toString() || '',
     drugOffsetMinutes: editingDrug?.drug_offset_minutes?.toString() || '',
   });
 
@@ -80,7 +80,7 @@ const DrugForm: React.FC<DrugFormProps> = ({ onSubmit, onCancel, loading, editin
       absolute_time: convertedTime,
       meal_schedule_id: form.mealScheduleId ? parseInt(form.mealScheduleId, 10) : undefined,
       meal_offset_minutes: form.mealOffsetMinutes ? parseInt(form.mealOffsetMinutes, 10) : undefined,
-      depends_on_drug_id: form.dependsOnDrugId ? parseInt(form.dependsOnDrugId, 10) : undefined,
+      depends_on_schedule_id: form.dependsOnDrugId ? parseInt(form.dependsOnDrugId, 10) : undefined,
       drug_offset_minutes: form.drugOffsetMinutes ? parseInt(form.drugOffsetMinutes, 10) : undefined,
     };
 
