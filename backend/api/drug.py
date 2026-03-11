@@ -423,7 +423,7 @@ def rewire_and_delete_schedule(
             if abs_time is None:
                 raise ValueError("ABSOLUTE schedule is missing absolute_time")
             base_minutes = abs_time.hour * 60 + abs_time.minute
-            total = base_minutes + child_offset
+            total = (base_minutes + child_offset) % 1440
             child.dependency_type = DependencyType.ABSOLUTE
             child.depends_on_schedule_id = None
             child.drug_offset_minutes = None
@@ -481,7 +481,7 @@ def compute_rewire_preview(
             if abs_time is None:
                 raise ValueError("ABSOLUTE schedule is missing absolute_time")
             base_minutes = abs_time.hour * 60 + abs_time.minute
-            total = base_minutes + child_offset
+            total = (base_minutes + child_offset) % 1440
             preview["new_dependency_type"] = "absolute"
             preview["new_depends_on_name"] = None
             preview["new_offset_minutes"] = 0
