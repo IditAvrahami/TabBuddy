@@ -391,7 +391,7 @@ def get_schedule_dependents(
     previews = compute_rewire_preview(db, schedule)
     return DependentsResponse(
         has_dependents=len(previews) > 0,
-        dependents=[DependentSchedulePreview(**p) for p in previews],
+        dependents=previews,
     )
 
 
@@ -450,7 +450,7 @@ def rewire_and_delete_schedule(
 
 def compute_rewire_preview(
     db: Session, schedule: DrugSchedule
-) -> list[dict[str, object]]:
+) -> list[DependentSchedulePreview]:
     """Compute what would happen to children if this schedule were deleted."""
     children = (
         db.query(DrugSchedule)
@@ -460,11 +460,11 @@ def compute_rewire_preview(
 
     parent_schedule_id = schedule.depends_on_schedule_id
     parent_offset = schedule.drug_offset_minutes or 0
-    previews: list[dict[str, object]] = []
+    previews: list[DependentSchedulePreview] = []
 
     for child in children:
         child_offset = child.drug_offset_minutes or 0
-        preview: dict[str, object] = {
+        common = {
             "schedule_id": child.id,
             "drug_name": child.drug.name,
             "current_depends_on_name": schedule.drug.name,
@@ -477,34 +477,44 @@ def compute_rewire_preview(
                 .filter(DrugSchedule.id == parent_schedule_id)
                 .first()
             )
-            preview["new_dependency_type"] = "drug"
-            preview["new_depends_on_name"] = parent.drug.name if parent else None
-            preview["new_offset_minutes"] = child_offset + parent_offset
-            preview["new_absolute_time"] = None
+            preview = DependentSchedulePreview(
+                **common,
+                new_dependency_type="drug",
+                new_depends_on_name=parent.drug.name if parent else None,
+                new_offset_minutes=child_offset + parent_offset,
+                new_absolute_time=None,
+            )
         elif schedule.dependency_type == DependencyType.ABSOLUTE:
             abs_time = schedule.absolute_time
             if abs_time is None:
                 raise ValueError("ABSOLUTE schedule is missing absolute_time")
             base_minutes = abs_time.hour * 60 + abs_time.minute
             total = (base_minutes + child_offset) % 1440
-            preview["new_dependency_type"] = "absolute"
-            preview["new_depends_on_name"] = None
-            preview["new_offset_minutes"] = 0
-            preview["new_absolute_time"] = f"{total // 60:02d}:{total % 60:02d}"
-        elif schedule.dependency_type == DependencyType.MEAL:
-            preview["new_dependency_type"] = "meal"
-            preview["new_depends_on_name"] = (
-                schedule.meal_schedule.meal_name if schedule.meal_schedule else None
+            preview = DependentSchedulePreview(
+                **common,
+                new_dependency_type="absolute",
+                new_depends_on_name=None,
+                new_offset_minutes=0,
+                new_absolute_time=f"{total // 60:02d}:{total % 60:02d}",
             )
-            preview["new_offset_minutes"] = (
-                schedule.meal_offset_minutes or 0
-            ) + child_offset
-            preview["new_absolute_time"] = None
+        elif schedule.dependency_type == DependencyType.MEAL:
+            preview = DependentSchedulePreview(
+                **common,
+                new_dependency_type="meal",
+                new_depends_on_name=(
+                    schedule.meal_schedule.meal_name if schedule.meal_schedule else None
+                ),
+                new_offset_minutes=(schedule.meal_offset_minutes or 0) + child_offset,
+                new_absolute_time=None,
+            )
         else:
-            preview["new_dependency_type"] = "absolute"
-            preview["new_depends_on_name"] = None
-            preview["new_offset_minutes"] = 0
-            preview["new_absolute_time"] = None
+            preview = DependentSchedulePreview(
+                **common,
+                new_dependency_type="absolute",
+                new_depends_on_name=None,
+                new_offset_minutes=0,
+                new_absolute_time=None,
+            )
 
         previews.append(preview)
 
